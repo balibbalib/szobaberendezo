@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Méretarányos Szobatervező – 245 × 410 cm (140×200 ággyal)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        canvas {
+            touch-action: none;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Header -->
+    <header class="bg-slate-900 text-white px-4 py-3 shadow-md border-b border-slate-800 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-bold text-lg shadow-inner">
+                    2D
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg leading-tight flex items-center gap-2">
+                        Méretarányos Szobatervező CAD Pro
+                        <span id="header-room-badge" class="text-xs font-mono bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-slate-700">245 × 410 cm</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Teljesen szerkeszthető falak és ajtók • Külön mozgatható szék és íróasztal • Egyedi bútorok</p>
+                </div>
+            </div>
+
+            <!-- Preset Layout Buttons -->
+            <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-xs text-slate-400 mr-1 hidden md:inline">Elrendezések:</span>
+                <button onclick="applyPreset(1)" id="preset-btn-1" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-amber-500 text-slate-950 shadow-sm">
+                    ★ 1. Optimális (Ágy középen-jobbra)
+                </button>
+                <button onclick="applyPreset(2)" id="preset-btn-2" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-slate-800 text-slate-200 hover:bg-slate-700">
+                    2. Ágy hátul-jobbra
+                </button>
+                <button onclick="applyPreset(3)" id="preset-btn-3" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-slate-800 text-slate-200 hover:bg-slate-700">
+                    3. Ágy bal falon
+                </button>
+                <button onclick="resetRoomDefaults()" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-amber-400 hover:bg-slate-700 border border-slate-700 ml-1" title="Eredeti 245x410 cm szobaméretek visszaállítása">
+                    ↺ Alaphelyzet
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+        <!-- Left / Center Column: Interactive Floor Plan Canvas -->
+        <div class="lg:col-span-7 xl:col-span-8 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            <!-- Canvas Toolbar -->
+            <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex flex-wrap items-center gap-3">
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                        <input type="checkbox" id="toggle-dims" checked onchange="draw()" class="rounded text-amber-600 focus:ring-amber-500">
+                        <span>Külső kótázás</span>
+                    </label>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                        <input type="checkbox" id="toggle-item-dists" checked onchange="draw()" class="rounded text-amber-600 focus:ring-amber-500">
+                        <span>Bútor faltávolságok</span>
+                    </label>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                        <input type="checkbox" id="toggle-clearances" checked onchange="draw()" class="rounded text-amber-600 focus:ring-amber-500">
+                        <span>Közlekedő sáv</span>
+                    </label>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                        <input type="checkbox" id="toggle-grid" checked onchange="draw()" class="rounded text-amber-600 focus:ring-amber-500">
+                        <span>10/50 cm Rács</span>
+                    </label>
+                </div>
+
+                <!-- Zoom & Quick Flip Controls -->
+                <div class="flex items-center gap-1.5">
+                    <button onclick="adjustZoom(-0.15)" class="px-2 py-1 bg-white border border-slate-300 hover:bg-slate-100 rounded-md font-bold text-slate-700" title="Kicsinyítés">−</button>
+                    <button onclick="resetZoom()" id="zoom-label" class="px-2 py-1 bg-white border border-slate-300 hover:bg-slate-100 rounded-md mono text-[11px] text-slate-700" title="Nagyítás alaphelyzetbe">100%</button>
+                    <button onclick="adjustZoom(0.15)" class="px-2 py-1 bg-white border border-slate-300 hover:bg-slate-100 rounded-md font-bold text-slate-700" title="Nagyítás">+</button>
+                    <button onclick="swapBottomWallSegments()" class="ml-1 px-2.5 py-1 bg-amber-50 border border-amber-300 hover:bg-amber-100 rounded-md font-semibold text-amber-900 transition flex items-center gap-1" title="Alsó ajtófal két szélső szakaszának felcserélése">
+                        <span>⇄ Ajtófal csere</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status / Warning Banner -->
+            <div id="status-banner" class="px-4 py-2 text-xs font-medium flex items-center justify-between border-b transition-colors bg-emerald-50 text-emerald-900 border-emerald-200">
+                <div class="flex items-center gap-2">
+                    <span id="status-icon" class="text-base">✅</span>
+                    <span id="status-text">Minden bútor elfér, az ajtók szabadon nyithatók, a közlekedő sáv kényelmes.</span>
+                </div>
+                <span class="mono font-semibold text-xs whitespace-nowrap ml-2" id="walkway-badge">Szabad sáv: 105 cm</span>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="relative w-full flex-1 flex items-center justify-center bg-slate-100/70 p-2 sm:p-4 min-h-[580px] overflow-auto" id="canvas-wrapper">
+                <canvas id="floorplan" class="bg-white shadow-md rounded-lg border border-slate-300 cursor-grab active:cursor-grabbing"></canvas>
+            </div>
+
+            <!-- Bottom Helper Footer -->
+            <div class="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                <div>💡 <strong>Tipp:</strong> Az <strong>Íróasztal</strong> és a <strong>Forgószék</strong> mostantól külön-külön mozgatható! Kattints bármelyikre a szerkesztéshez, vagy adj hozzá új bútort jobb oldalon.</div>
+                <div class="mono text-[11px] text-slate-400">1 kis négyzet = 10×10 cm • Vastag vonal = 50 cm</div>
+            </div>
+        </div>
+
+        <!-- Right Column: Controls, Room/Door Editor, Selected Item, Add Furniture -->
+        <div class="lg:col-span-5 xl:col-span-4 flex flex-col gap-3.5">
+
+            <!-- 1. ROOM WALLS & DOORS EDITOR (Collapsible / Tabbed Card) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
+                    <h2 class="font-bold text-xs uppercase tracking-wider flex items-center gap-2">
+                        <span>📐 Szoba, Falak és Ajtók Szerkesztése</span>
+                    </h2>
+                    <span class="text-[11px] mono text-amber-400" id="area-badge">10.05 m²</span>
+                </div>
+
+                <div class="p-3.5 space-y-3.5 text-xs">
+                    <!-- Main Room Width & Length -->
+                    <div class="grid grid-cols-2 gap-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Szoba szélesség (X) cm</label>
+                            <input type="number" id="room-w-inp" step="0.5" min="150" max="800" value="245" onchange="onRoomWidthInput(this.value)" class="w-full px-2.5 py-1.5 text-sm mono font-bold border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Szoba hosszúság (Y) cm</label>
+                            <input type="number" id="room-h-inp" step="0.5" min="150" max="800" value="410" onchange="onRoomHeightInput(this.value)" class="w-full px-2.5 py-1.5 text-sm mono font-bold border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white">
+                        </div>
+                    </div>
+
+                    <!-- Bottom Wall (Bejárati ajtó fala) -->
+                    <div class="border border-amber-200 bg-amber-50/40 rounded-xl p-2.5 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-800 flex items-center gap-1">🚪 Bejárati ajtó fala (Alsó fal)</span>
+                            <button onclick="swapBottomWallSegments()" class="text-[11px] px-2 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded font-semibold transition">
+                                ⇄ Bal/Jobb csere
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-0.5">Bal fal (cm)</label>
+                                <input type="number" id="bot-left-inp" step="0.5" min="0" value="85" onchange="onBottomWallSegmentChange('left')" class="w-full px-2 py-1 text-xs mono border border-slate-300 rounded bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-0.5">Ajtó kerettel</label>
+                                <input type="number" id="bot-frame-inp" step="0.5" min="50" value="95.5" onchange="onBottomWallSegmentChange('frame')" class="w-full px-2 py-1 text-xs mono border border-amber-400 font-semibold rounded bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-0.5">Jobb fal (cm)</label>
+                                <input type="number" id="bot-right-inp" step="0.5" min="0" value="65.5" onchange="onBottomWallSegmentChange('right')" class="w-full px-2 py-1 text-xs mono border border-slate-300 rounded bg-white">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-1.5 pt-1">
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-0.5">Nyíló szárny (cm)</label>
+                                <input type="number" id="bot-leaf-inp" step="0.5" min="40" value="85" onchange="onBottomDoorConfigChange()" class="w-full px-2 py-1 text-xs mono border border-slate-300 rounded bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-0.5">Pánt oldala</label>
+                                <select id="bot-hinge-sel" onchange="onBottomDoorConfigChange()" class="w-full px-1.5 py-1 text-xs border border-slate-300 rounded bg-white font-medium">
+                                    <option value="left" selected>Balos (balra)</option>
+                                    <option value="right">Jobbos (jobbra)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-0.5">Nyitás iránya</label>
+                                <select id="bot-dir-sel" onchange="onBottomDoorConfigChange()" class="w-full px-1.5 py-1 text-xs border border-slate-300 rounded bg-white font-medium">
+                                    <option value="in" selected>Befelé nyílik</option>
+                                    <option value="out">Kifelé nyílik</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Wall (Erkélyajtó fala) -->
+                    <div class="border border-sky-200 bg-sky-50/40 rounded-xl p-2.5 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-800 flex items-center gap-1">🪟 Erkélyajtó fala (Felső fal)</span>
+                            <button onclick="centerBalconyDoor()" class="text-[11px] px-2 py-0.5 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded font-semibold transition">
+                                Középre igazít
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-0.5">Bal fal (cm)</label>
+                                <input type="number" id="top-left-inp" step="0.5" min="0" value="77.5" onchange="onTopWallSegmentChange('left')" class="w-full px-2 py-1 text-xs mono border border-slate-300 rounded bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-0.5">Erkélyajtó (cm)</label>
+                                <input type="number" id="top-door-inp" step="0.5" min="50" value="90" onchange="onTopWallSegmentChange('door')" class="w-full px-2 py-1 text-xs mono border border-sky-400 font-semibold rounded bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-0.5">Jobb fal (cm)</label>
+                                <input type="number" id="top-right-inp" step="0.5" min="0" value="77.5" onchange="onTopWallSegmentChange('right')" class="w-full px-2 py-1 text-xs mono border border-slate-300 rounded bg-white">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-1.5 pt-1">
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-0.5">Nyíló szárny (cm)</label>
+                                <input type="number" id="top-leaf-inp" step="0.5" min="40" value="85" onchange="onTopDoorConfigChange()" class="w-full px-2 py-1 text-xs mono border border-slate-300 rounded bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-0.5">Pánt oldala</label>
+                                <select id="top-hinge-sel" onchange="onTopDoorConfigChange()" class="w-full px-1.5 py-1 text-xs border border-slate-300 rounded bg-white font-medium">
+                                    <option value="left" selected>Balos (balra)</option>
+                                    <option value="right">Jobbos (jobbra)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500 mb-0.5">Nyitás iránya</label>
+                                <select id="top-dir-sel" onchange="onTopDoorConfigChange()" class="w-full px-1.5 py-1 text-xs border border-slate-300 rounded bg-white font-medium">
+                                    <option value="in" selected>Befelé nyílik</option>
+                                    <option value="out">Kifelé nyílik</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. SELECTED FURNITURE INSPECTOR -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+                <div class="flex items-center justify-between mb-2.5">
+                    <h2 class="font-bold text-xs text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>🪑 Kijelölt Bútor Szerkesztése</span>
+                    </h2>
+                    <span id="selected-badge" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">Ágy (140×200)</span>
+                </div>
+
+                <div id="inspector-content" class="space-y-2.5 text-xs">
+                    <div class="grid grid-cols-12 gap-2">
+                        <div class="col-span-8">
+                            <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Megnevezés</label>
+                            <input type="text" id="inp-name" oninput="updateSelectedProps()" class="w-full px-2.5 py-1 text-xs font-semibold border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div class="col-span-4">
+                            <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Szín</label>
+                            <input type="color" id="inp-color" oninput="updateSelectedColor(this.value)" class="w-full h-7 p-0.5 border border-slate-300 rounded-lg cursor-pointer bg-white">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Szélesség (X) – cm</label>
+                            <input type="number" id="inp-w" step="1" min="10" max="500" onchange="updateSelectedDimensions()" class="w-full px-2.5 py-1 text-xs mono font-bold border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Hossz / Mélység (Y) – cm</label>
+                            <input type="number" id="inp-h" step="1" min="10" max="500" onchange="updateSelectedDimensions()" class="w-full px-2.5 py-1 text-xs mono font-bold border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Exact position from walls (Editable!) -->
+                    <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                        <div>
+                            <label class="block text-[10px] text-slate-500">Bal faltól (X cm)</label>
+                            <input type="number" id="inp-x" step="1" onchange="updateSelectedPositionFromInputs('x')" class="w-full px-2 py-0.5 mt-0.5 text-xs mono font-semibold border border-slate-300 rounded bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-500">Felső faltól (Y cm)</label>
+                            <input type="number" id="inp-y" step="1" onchange="updateSelectedPositionFromInputs('y')" class="w-full px-2 py-0.5 mt-0.5 text-xs mono font-semibold border border-slate-300 rounded bg-white">
+                        </div>
+                        <div class="text-[11px] mono text-slate-600">Jobb faltól: <strong id="pos-right" class="text-slate-900">0 cm</strong></div>
+                        <div class="text-[11px] mono text-slate-600">Alsó faltól: <strong id="pos-bottom" class="text-slate-900">95 cm</strong></div>
+                    </div>
+
+                    <!-- Action Buttons: Rotate, Align, Duplicate, Delete -->
+                    <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                        <button onclick="rotateSelected()" class="flex-1 py-1.5 px-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 shadow-sm">
+                            <span>↻ Forgatás 90°</span>
+                        </button>
+                        <button onclick="snapSelectedToWall('left')" class="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition" title="Bal falhoz igazítás">⇤ Balra</button>
+                        <button onclick="snapSelectedToWall('right')" class="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition" title="Jobb falhoz igazítás">Jobbra ⇥</button>
+                        <button onclick="duplicateSelected()" class="py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold transition" title="Bútor másolása">＋ Másol</button>
+                        <button onclick="deleteSelected()" class="py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold transition" title="Kijelölt bútor törlése">🗑 Töröl</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. ADD NEW FURNITURE PANEL -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-3">
+                <h2 class="font-bold text-xs text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>➕ Új Bútor Hozzáadása</span>
+                </h2>
+
+                <!-- Quick Add Preset Buttons -->
+                <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+                    <button onclick="addPresetFurniture('chair')" class="p-1.5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-lg font-medium text-slate-700 transition text-left">
+                        💺 Forgószék <span class="block mono text-[10px] text-slate-400">55×55 cm</span>
+                    </button>
+                    <button onclick="addPresetFurniture('desk')" class="p-1.5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-lg font-medium text-slate-700 transition text-left">
+                        💻 Íróasztal <span class="block mono text-[10px] text-slate-400">110×60 cm</span>
+                    </button>
+                    <button onclick="addPresetFurniture('shelf')" class="p-1.5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-lg font-medium text-slate-700 transition text-left">
+                        📚 Könyvespolc <span class="block mono text-[10px] text-slate-400">80×30 cm</span>
+                    </button>
+                    <button onclick="addPresetFurniture('dresser')" class="p-1.5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-lg font-medium text-slate-700 transition text-left">
+                        🗄️ Komód <span class="block mono text-[10px] text-slate-400">80×45 cm</span>
+                    </button>
+                    <button onclick="addPresetFurniture('armchair')" class="p-1.5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-lg font-medium text-slate-700 transition text-left">
+                        🛋️ Fotel <span class="block mono text-[10px] text-slate-400">75×75 cm</span>
+                    </button>
+                    <button onclick="addPresetFurniture('tv')" class="p-1.5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-lg font-medium text-slate-700 transition text-left">
+                        📺 TV állvány <span class="block mono text-[10px] text-slate-400">120×40 cm</span>
+                    </button>
+                    <button onclick="addPresetFurniture('rug')" class="p-1.5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-lg font-medium text-slate-700 transition text-left">
+                        🧶 Szőnyeg <span class="block mono text-[10px] text-slate-400">80×150 cm</span>
+                    </button>
+                    <button onclick="addPresetFurniture('plant')" class="p-1.5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-lg font-medium text-slate-700 transition text-left">
+                        🪴 Szobanövény <span class="block mono text-[10px] text-slate-400">35×35 cm</span>
+                    </button>
+                    <button onclick="addPresetFurniture('radiator')" class="p-1.5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-lg font-medium text-slate-700 transition text-left">
+                        ♨️ Radiátor <span class="block mono text-[10px] text-slate-400">65×15 cm</span>
+                    </button>
+                </div>
+
+                <!-- Custom Size Furniture Creator -->
+                <div class="border-t border-slate-200 pt-2.5">
+                    <div class="text-[11px] font-semibold text-slate-600 mb-1.5">Egyedi bútor létrehozása:</div>
+                    <div class="grid grid-cols-12 gap-1.5 items-end">
+                        <div class="col-span-5">
+                            <label class="block text-[10px] text-slate-400">Név</label>
+                            <input type="text" id="custom-name" placeholder="Pl. Polcos elem" value="Egyedi bútor" class="w-full px-2 py-1 text-xs border border-slate-300 rounded">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[10px] text-slate-400">Szél. (cm)</label>
+                            <input type="number" id="custom-w" value="60" min="10" max="300" class="w-full px-1.5 py-1 text-xs mono border border-slate-300 rounded">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[10px] text-slate-400">Mély. (cm)</label>
+                            <input type="number" id="custom-h" value="40" min="10" max="300" class="w-full px-1.5 py-1 text-xs mono border border-slate-300 rounded">
+                        </div>
+                        <div class="col-span-3">
+                            <button onclick="addCustomFurniture()" class="w-full py-1 px-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded transition shadow-sm">
+                                + Hozzáad
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. FURNITURE LIST -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="font-bold text-xs text-slate-800 uppercase tracking-wider">📦 Szobában lévő elemek</h2>
+                    <span id="item-count-badge" class="text-[11px] mono text-slate-400">6 elem</span>
+                </div>
+                <div id="furniture-list" class="space-y-1.5 text-xs max-h-52 overflow-y-auto pr-1"></div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- EDITABLE ROOM & DOOR STATE (in centimeters) ---
+        let room = {
+            w: 245,
+            h: 410,
+            wallThickness: 12,
+            // Bottom Wall (Entry Door): 85 + 95.5 + 65.5 = 246 cm (or synced with room.w)
+            bottom: {
+                left: 85,
+                frame: 95.5,
+                right: 65.5,
+                leaf: 85,
+                hinge: 'left', // 'left' | 'right'
+                dir: 'in'      // 'in' | 'out'
+            },
+            // Top Wall (Balcony Door): 77.5 + 90 + 77.5 = 245 cm
+            top: {
+                left: 77.5,
+                door: 90,
+                right: 77.5,
+                leaf: 85,
+                hinge: 'left', // 'left' | 'right'
+                dir: 'in'      // 'in' | 'out'
+            }
+        };
+
+        // Furniture state (Desk, Chair, and Radiator are now independent movable items!)
+        let furniture = [];
+        let selectedId = 'bed';
+        let currentPreset = 1;
+        let nextCustomId = 100;
+
+        // Dragging state
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        // Canvas & Zoom Scale
+        const canvas = document.getElementById('floorplan');
+        const ctx = canvas.getContext('2d');
+        let baseScale = 1.75;
+        let zoomMultiplier = 1.0;
+        let scale = 1.75;
+        let padLeft = 72;
+        let padTop = 75;
+        let padRight = 72;
+        let padBottom = 80;
+
+        // --- ROOM & DOOR EDITING LOGIC ---
+        function syncRoomInputsUI() {
+            document.getElementById('room-w-inp').value = round1(room.w);
+            document.getElementById('room-h-inp').value = round1(room.h);
+
+            document.getElementById('bot-left-inp').value = round1(room.bottom.left);
+            document.getElementById('bot-frame-inp').value = round1(room.bottom.frame);
+            document.getElementById('bot-right-inp').value = round1(room.bottom.right);
+            document.getElementById('bot-leaf-inp').value = round1(room.bottom.leaf);
+            document.getElementById('bot-hinge-sel').value = room.bottom.hinge;
+            document.getElementById('bot-dir-sel').value = room.bottom.dir;
+
+            document.getElementById('top-left-inp').value = round1(room.top.left);
+            document.getElementById('top-door-inp').value = round1(room.top.door);
+            document.getElementById('top-right-inp').value = round1(room.top.right);
+            document.getElementById('top-leaf-inp').value = round1(room.top.leaf);
+            document.getElementById('top-hinge-sel').value = room.top.hinge;
+            document.getElementById('top-dir-sel').value = room.top.dir;
+
+            const areaM2 = ((room.w * room.h) / 10000).toFixed(2);
+            document.getElementById('area-badge').textContent = `${areaM2} m²`;
+            document.getElementById('header-room-badge').textContent = `${round1(room.w)} × ${round1(room.h)} cm`;
+        }
+
+        function round1(val) {
+            return Math.round(val * 10) / 10;
+        }
+
+        function onRoomWidthInput(val) {
+            const newW = Math.max(120, Math.min(800, parseFloat(val) || 245));
+            const delta = newW - room.w;
+            room.w = newW;
+
+            // Adjust right segments on top and bottom walls to match new room width
+            room.bottom.right = Math.max(0, round1(room.w - room.bottom.left - room.bottom.frame));
+            room.top.right = Math.max(0, round1(room.w - room.top.left - room.top.door));
+
+            // Keep right-wall snapped furniture attached to right wall if appropriate
+            furniture.forEach(f => clampItemToRoom(f));
+            syncRoomInputsUI();
+            resizeCanvas();
+        }
+
+        function onRoomHeightInput(val) {
+            room.h = Math.max(120, Math.min(800, parseFloat(val) || 410));
+            furniture.forEach(f => clampItemToRoom(f));
+            syncRoomInputsUI();
+            resizeCanvas();
+        }
+
+        function onBottomWallSegmentChange(changedField) {
+            let left = Math.max(0, parseFloat(document.getElementById('bot-left-inp').value) || 0);
+            let frame = Math.max(40, parseFloat(document.getElementById('bot-frame-inp').value) || 95.5);
+            let right = Math.max(0, parseFloat(document.getElementById('bot-right-inp').value) || 0);
+
+            room.bottom.left = left;
+            room.bottom.frame = frame;
+            room.bottom.right = right;
+
+            // Update total room width based on the sum of segments (if difference > 1.5 cm, otherwise allow 85+95.5+65.5=246 display on 245 room or update room.w)
+            const sum = round1(left + frame + right);
+            if (Math.abs(sum - 246) <= 0.5 && room.w === 245) {
+                // Keep exact user 85 + 95.5 + 65.5 on 245 cm room without forcing 246 unless user changes further
+            } else {
+                room.w = sum;
+                room.top.right = Math.max(0, round1(room.w - room.top.left - room.top.door));
+            }
+
+            syncRoomInputsUI();
+            resizeCanvas();
+        }
+
+        function onBottomDoorConfigChange() {
+            room.bottom.leaf = Math.max(30, parseFloat(document.getElementById('bot-leaf-inp').value) || 85);
+            room.bottom.hinge = document.getElementById('bot-hinge-sel').value;
+            room.bottom.dir = document.getElementById('bot-dir-sel').value;
+            draw();
+        }
+
+        function swapBottomWallSegments() {
+            const tmp = room.bottom.left;
+            room.bottom.left = room.bottom.right;
+            room.bottom.right = tmp;
+            syncRoomInputsUI();
+            draw();
+        }
+
+        function onTopWallSegmentChange(changedField) {
+            let left = Math.max(0, parseFloat(document.getElementById('top-left-inp').value) || 0);
+            let door = Math.max(40, parseFloat(document.getElementById('top-door-inp').value) || 90);
+            let right = Math.max(0, parseFloat(document.getElementById('top-right-inp').value) || 0);
+
+            if (changedField === 'left' || changedField === 'door') {
+                right = Math.max(0, round1(room.w - left - door));
+            } else if (changedField === 'right') {
+                room.w = round1(left + door + right);
+                room.bottom.right = Math.max(0, round1(room.w - room.bottom.left - room.bottom.frame));
+            }
+
+            room.top.left = left;
+            room.top.door = door;
+            room.top.right = right;
+
+            syncRoomInputsUI();
+            resizeCanvas();
+        }
+
+        function centerBalconyDoor() {
+            const rem = Math.max(0, room.w - room.top.door);
+            room.top.left = round1(rem / 2);
+            room.top.right = round1(rem / 2);
+            syncRoomInputsUI();
+            draw();
+        }
+
+        function onTopDoorConfigChange() {
+            room.top.leaf = Math.max(30, parseFloat(document.getElementById('top-leaf-inp').value) || 85);
+            room.top.hinge = document.getElementById('top-hinge-sel').value;
+            room.top.dir = document.getElementById('top-dir-sel').value;
+            draw();
+        }
+
+        function resetRoomDefaults() {
+            room = {
+                w: 245,
+                h: 410,
+                wallThickness: 12,
+                bottom: { left: 85, frame: 95.5, right: 65.5, leaf: 85, hinge: 'left', dir: 'in' },
+                top: { left: 77.5, door: 90, right: 77.5, leaf: 85, hinge: 'left', dir: 'in' }
+            };
+            syncRoomInputsUI();
+            applyPreset(1);
+            resizeCanvas();
+        }
+
+        // Helper to get geometric bottom wall positions scaled inside room.w
+        function getBottomGeometry() {
+            const totalSeg = room.bottom.left + room.bottom.frame + room.bottom.right;
+            const factor = totalSeg > 0 ? (room.w / totalSeg) : 1;
+            return {
+                leftCm: room.bottom.left * factor,
+                frameCm: room.bottom.frame * factor,
+                rightCm: room.bottom.right * factor,
+                leafCm: room.bottom.leaf,
+                leftLabel: `${round1(room.bottom.left)} cm`,
+                frameLabel: `${round1(room.bottom.frame)} cm (ajtó: ${round1(room.bottom.leaf)})`,
+                rightLabel: `${round1(room.bottom.right)} cm`
+            };
+        }
+
+        function getTopGeometry() {
+            const totalSeg = room.top.left + room.top.door + room.top.right;
+            const factor = totalSeg > 0 ? (room.w / totalSeg) : 1;
+            return {
+                leftCm: room.top.left * factor,
+                doorCm: room.top.door * factor,
+                rightCm: room.top.right * factor,
+                leafCm: room.top.leaf,
+                leftLabel: `${round1(room.top.left)} cm`,
+                doorLabel: `Erkély: ${round1(room.top.door)} cm`,
+                rightLabel: `${round1(room.top.right)} cm`
+            };
+        }
+
+        // --- PRESET LAYOUTS (WITH SEPARATE DESK, CHAIR, AND RADIATOR) ---
+        function applyPreset(num) {
+            currentPreset = num;
+            [1, 2, 3].forEach(i => {
+                const btn = document.getElementById(`preset-btn-${i}`);
+                if (!btn) return;
+                if (i === num) {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-amber-500 text-slate-950 shadow-sm";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-slate-800 text-slate-200 hover:bg-slate-700";
+                }
+            });
+
+            const rw = room.w;
+            const rh = room.h;
+
+            if (num === 1) {
+                // Preset 1: Optimal layout (Desk and Chair are independent items!)
+                furniture = [
+                    {
+                        id: 'radiator',
+                        name: 'Radiátor',
+                        type: 'radiator',
+                        x: 10,
+                        y: 0,
+                        w: 65,
+                        h: 15,
+                        color: '#f8fafc',
+                        borderColor: '#64748b'
+                    },
+                    {
+                        id: 'bed',
+                        name: 'Ágy (140×200)',
+                        type: 'bed',
+                        x: Math.max(0, rw - 140),
+                        y: 125,
+                        w: 140,
+                        h: 200,
+                        color: '#fef3c7',
+                        borderColor: '#d97706'
+                    },
+                    {
+                        id: 'desk',
+                        name: 'Íróasztal',
+                        type: 'desk',
+                        x: Math.max(0, rw - 60),
+                        y: 5,
+                        w: 60,
+                        h: 110,
+                        color: '#e0f2fe',
+                        borderColor: '#0284c7'
+                    },
+                    {
+                        id: 'chair',
+                        name: 'Forgószék',
+                        type: 'chair',
+                        x: Math.max(0, rw - 115),
+                        y: 32,
+                        w: 52,
+                        h: 52,
+                        rotation: 90, // facing right towards the desk
+                        color: '#bae6fd',
+                        borderColor: '#0369a1'
+                    },
+                    {
+                        id: 'wardrobe',
+                        name: 'Ruhásszekrény',
+                        type: 'wardrobe',
+                        x: 0,
+                        y: 200,
+                        w: 60,
+                        h: 100,
+                        color: '#f1f5f9',
+                        borderColor: '#475569'
+                    },
+                    {
+                        id: 'nightstand',
+                        name: 'Komód / Éjjeliszekrény',
+                        type: 'nightstand',
+                        x: Math.max(0, rw - 45),
+                        y: 330,
+                        w: 45,
+                        h: 65,
+                        color: '#fce7f3',
+                        borderColor: '#db2777'
+                    }
+                ];
+            } else if (num === 2) {
+                furniture = [
+                    {
+                        id: 'radiator',
+                        name: 'Radiátor',
+                        type: 'radiator',
+                        x: 10,
+                        y: 0,
+                        w: 65,
+                        h: 15,
+                        color: '#f8fafc',
+                        borderColor: '#64748b'
+                    },
+                    {
+                        id: 'bed',
+                        name: 'Ágy (140×200)',
+                        type: 'bed',
+                        x: Math.max(0, rw - 140),
+                        y: 10,
+                        w: 140,
+                        h: 200,
+                        color: '#fef3c7',
+                        borderColor: '#d97706'
+                    },
+                    {
+                        id: 'nightstand',
+                        name: 'Éjjeliszekrény',
+                        type: 'nightstand',
+                        x: Math.max(0, rw - 45),
+                        y: 215,
+                        w: 45,
+                        h: 45,
+                        color: '#fce7f3',
+                        borderColor: '#db2777'
+                    },
+                    {
+                        id: 'desk',
+                        name: 'Íróasztal',
+                        type: 'desk',
+                        x: Math.max(0, rw - 60),
+                        y: 270,
+                        w: 60,
+                        h: 110,
+                        color: '#e0f2fe',
+                        borderColor: '#0284c7'
+                    },
+                    {
+                        id: 'chair',
+                        name: 'Forgószék',
+                        type: 'chair',
+                        x: Math.max(0, rw - 115),
+                        y: 298,
+                        w: 52,
+                        h: 52,
+                        rotation: 90,
+                        color: '#bae6fd',
+                        borderColor: '#0369a1'
+                    },
+                    {
+                        id: 'wardrobe',
+                        name: 'Ruhásszekrény',
+                        type: 'wardrobe',
+                        x: 0,
+                        y: 195,
+                        w: 60,
+                        h: 110,
+                        color: '#f1f5f9',
+                        borderColor: '#475569'
+                    }
+                ];
+            } else if (num === 3) {
+                furniture = [
+                    {
+                        id: 'radiator',
+                        name: 'Radiátor',
+                        type: 'radiator',
+                        x: 10,
+                        y: 0,
+                        w: 65,
+                        h: 15,
+                        color: '#f8fafc',
+                        borderColor: '#64748b'
+                    },
+                    {
+                        id: 'bed',
+                        name: 'Ágy (140×200)',
+                        type: 'bed',
+                        x: 0,
+                        y: 100,
+                        w: 140,
+                        h: 200,
+                        color: '#fef3c7',
+                        borderColor: '#d97706'
+                    },
+                    {
+                        id: 'nightstand',
+                        name: 'Éjjeliszekrény',
+                        type: 'nightstand',
+                        x: 0,
+                        y: 305,
+                        w: 45,
+                        h: 45,
+                        color: '#fce7f3',
+                        borderColor: '#db2777'
+                    },
+                    {
+                        id: 'desk',
+                        name: 'Íróasztal',
+                        type: 'desk',
+                        x: Math.max(0, rw - 60),
+                        y: 5,
+                        w: 60,
+                        h: 110,
+                        color: '#e0f2fe',
+                        borderColor: '#0284c7'
+                    },
+                    {
+                        id: 'chair',
+                        name: 'Forgószék',
+                        type: 'chair',
+                        x: Math.max(0, rw - 115),
+                        y: 32,
+                        w: 52,
+                        h: 52,
+                        rotation: 90,
+                        color: '#bae6fd',
+                        borderColor: '#0369a1'
+                    },
+                    {
+                        id: 'wardrobe',
+                        name: 'Ruhásszekrény',
+                        type: 'wardrobe',
+                        x: Math.max(0, rw - 60),
+                        y: 280,
+                        w: 60,
+                        h: 110,
+                        color: '#f1f5f9',
+                        borderColor: '#475569'
+                    }
+                ];
+            }
+
+            selectItem('bed');
+            draw();
+        }
+
+        // --- SELECTION & INSPECTOR ---
+        function selectItem(id) {
+            selectedId = id;
+            const item = furniture.find(f => f.id === id) || furniture[0];
+            if (!item) return;
+            selectedId = item.id;
+
+            document.getElementById('selected-badge').textContent = item.name;
+            document.getElementById('inp-name').value = item.name;
+            document.getElementById('inp-color').value = item.color || '#fef3c7';
+            document.getElementById('inp-w').value = round1(item.w);
+            document.getElementById('inp-h').value = round1(item.h);
+
+            updateInspectorPositions(item);
+            renderFurnitureList();
+            draw();
+        }
+
+        function updateInspectorPositions(item) {
+            if (!item) return;
+            document.getElementById('inp-x').value = Math.round(item.x);
+            document.getElementById('inp-y').value = Math.round(item.y);
+            document.getElementById('pos-right').textContent = `${Math.round(room.w - (item.x + item.w))} cm`;
+            document.getElementById('pos-bottom').textContent = `${Math.round(room.h - (item.y + item.h))} cm`;
+        }
+
+        function updateSelectedProps() {
+            const item = furniture.find(f => f.id === selectedId);
+            if (!item) return;
+            item.name = document.getElementById('inp-name').value || 'Bútor';
+            document.getElementById('selected-badge').textContent = item.name;
+            renderFurnitureList();
+            draw();
+        }
+
+        function updateSelectedColor(hex) {
+            const item = furniture.find(f => f.id === selectedId);
+            if (!item) return;
+            item.color = hex;
+            renderFurnitureList();
+            draw();
+        }
+
+        function updateSelectedDimensions() {
+            const item = furniture.find(f => f.id === selectedId);
+            if (!item) return;
+            let newW = parseFloat(document.getElementById('inp-w').value) || item.w;
+            let newH = parseFloat(document.getElementById('inp-h').value) || item.h;
+            item.w = Math.max(10, Math.min(room.w, newW));
+            item.h = Math.max(10, Math.min(room.h, newH));
+            clampItemToRoom(item);
+            updateInspectorPositions(item);
+            renderFurnitureList();
+            draw();
+        }
+
+        function updateSelectedPositionFromInputs(axis) {
+            const item = furniture.find(f => f.id === selectedId);
+            if (!item) return;
+            if (axis === 'x') {
+                item.x = parseFloat(document.getElementById('inp-x').value) || 0;
+            } else {
+                item.y = parseFloat(document.getElementById('inp-y').value) || 0;
+            }
+            clampItemToRoom(item);
+            updateInspectorPositions(item);
+            draw();
+        }
+
+        function rotateSelected() {
+            const item = furniture.find(f => f.id === selectedId);
+            if (!item) return;
+            const temp = item.w;
+            item.w = item.h;
+            item.h = temp;
+            item.rotation = ((item.rotation || 0) + 90) % 360;
+
+            clampItemToRoom(item);
+            document.getElementById('inp-w').value = round1(item.w);
+            document.getElementById('inp-h').value = round1(item.h);
+            updateInspectorPositions(item);
+            renderFurnitureList();
+            draw();
+        }
+
+        function snapSelectedToWall(side) {
+            const item = furniture.find(f => f.id === selectedId);
+            if (!item) return;
+            if (side === 'left') item.x = 0;
+            else if (side === 'right') item.x = room.w - item.w;
+            updateInspectorPositions(item);
+            draw();
+        }
+
+        function duplicateSelected() {
+            const item = furniture.find(f => f.id === selectedId);
+            if (!item) return;
+            nextCustomId++;
+            const copy = {
+                ...item,
+                id: 'item_' + nextCustomId,
+                name: item.name + ' (2)',
+                x: Math.min(room.w - item.w, item.x + 15),
+                y: Math.min(room.h - item.h, item.y + 15)
+            };
+            furniture.push(copy);
+            selectItem(copy.id);
+        }
+
+        function deleteSelected() {
+            if (furniture.length <= 1) return;
+            furniture = furniture.filter(f => f.id !== selectedId);
+            selectItem(furniture[0].id);
+        }
+
+        // --- ADD NEW FURNITURE ---
+        function addPresetFurniture(presetKey) {
+            nextCustomId++;
+            const templates = {
+                chair:    { name: 'Forgószék', type: 'chair', w: 55, h: 55, color: '#bae6fd', borderColor: '#0369a1', rotation: 0 },
+                desk:     { name: 'Íróasztal', type: 'desk', w: 110, h: 60, color: '#e0f2fe', borderColor: '#0284c7' },
+                shelf:    { name: 'Könyvespolc', type: 'shelf', w: 80, h: 30, color: '#fde68a', borderColor: '#b45309' },
+                dresser:  { name: 'Komód', type: 'nightstand', w: 80, h: 45, color: '#fce7f3', borderColor: '#db2777' },
+                armchair: { name: 'Fotel', type: 'armchair', w: 75, h: 75, color: '#ddd6fe', borderColor: '#6d28d9' },
+                tv:       { name: 'TV állvány', type: 'tv', w: 120, h: 40, color: '#e2e8f0', borderColor: '#334155' },
+                rug:      { name: 'Szőnyeg', type: 'rug', w: 80, h: 150, color: '#f5f5f4', borderColor: '#a8a29e' },
+                plant:    { name: 'Növény', type: 'plant', w: 35, h: 35, color: '#bbf7d0', borderColor: '#15803d' },
+                radiator: { name: 'Radiátor', type: 'radiator', w: 65, h: 15, color: '#f8fafc', borderColor: '#64748b' }
+            };
+            const tpl = templates[presetKey] || templates.shelf;
+            const newItem = {
+                id: 'item_' + nextCustomId,
+                name: tpl.name,
+                type: tpl.type,
+                w: Math.min(room.w, tpl.w),
+                h: Math.min(room.h, tpl.h),
+                x: Math.max(0, Math.round((room.w - tpl.w) / 2)),
+                y: Math.max(0, Math.round((room.h - tpl.h) / 2)),
+                rotation: tpl.rotation || 0,
+                color: tpl.color,
+                borderColor: tpl.borderColor
+            };
+            // Put rugs at bottom of stack so they render under furniture
+            if (newItem.type === 'rug') {
+                furniture.unshift(newItem);
+            } else {
+                furniture.push(newItem);
+            }
+            selectItem(newItem.id);
+        }
+
+        function addCustomFurniture() {
+            nextCustomId++;
+            const name = document.getElementById('custom-name').value || 'Egyedi bútor';
+            const w = Math.max(10, Math.min(room.w, parseFloat(document.getElementById('custom-w').value) || 60));
+            const h = Math.max(10, Math.min(room.h, parseFloat(document.getElementById('custom-h').value) || 40));
+
+            const newItem = {
+                id: 'custom_' + nextCustomId,
+                name: name,
+                type: 'custom',
+                w: w,
+                h: h,
+                x: Math.max(0, Math.round((room.w - w) / 2)),
+                y: Math.max(0, Math.round((room.h - h) / 2)),
+                color: '#e2e8f0',
+                borderColor: '#475569'
+            };
+            furniture.push(newItem);
+            selectItem(newItem.id);
+        }
+
+        function clampItemToRoom(item) {
+            if (item.w > room.w) item.w = room.w;
+            if (item.h > room.h) item.h = room.h;
+            item.x = Math.max(0, Math.min(room.w - item.w, item.x));
+            item.y = Math.max(0, Math.min(room.h - item.h, item.y));
+        }
+
+        function renderFurnitureList() {
+            const container = document.getElementById('furniture-list');
+            document.getElementById('item-count-badge').textContent = `${furniture.length} elem`;
+            container.innerHTML = furniture.map(f => {
+                const isSel = f.id === selectedId;
+                return `
+                    <div onclick="selectItem('${f.id}')" class="p-2 rounded-xl border cursor-pointer transition flex items-center justify-between ${isSel ? 'bg-amber-50 border-amber-400 text-slate-900 font-semibold shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}">
+                        <div class="flex items-center gap-2 truncate">
+                            <span class="w-3.5 h-3.5 rounded-sm inline-block border shrink-0" style="background:${f.color}; border-color:${f.borderColor || '#475569'}"></span>
+                            <span class="truncate">${f.name}</span>
+                        </div>
+                        <span class="mono text-[11px] text-slate-500 ml-2 shrink-0">${round1(f.w)} × ${round1(f.h)} cm</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- COLLISION & CLEARANCE CHECKS ---
+        function rectsOverlap(a, b) {
+            return !(a.x + a.w <= b.x + 0.5 || b.x + b.w <= a.x + 0.5 || a.y + a.h <= b.y + 0.5 || b.y + b.h <= a.y + 0.5);
+        }
+
+        function analyzeLayout() {
+            let warnings = [];
+
+            // 1. Check furniture-to-furniture overlap (ignore rugs and chair under desk overlap)
+            for (let i = 0; i < furniture.length; i++) {
+                for (let j = i + 1; j < furniture.length; j++) {
+                    const a = furniture[i];
+                    const b = furniture[j];
+                    if (a.type === 'rug' || b.type === 'rug') continue;
+                    if ((a.type === 'desk' && b.type === 'chair') || (a.type === 'chair' && b.type === 'desk')) continue;
+                    if (rectsOverlap(a, b)) {
+                        warnings.push(`Átfedés: ${a.name} ↔ ${b.name}!`);
+                    }
+                }
+            }
+
+            // 2. Check Top Balcony Door swing if inward
+            const topGeo = getTopGeometry();
+            if (room.top.dir === 'in') {
+                const balconyArcBox = {
+                    x: topGeo.leftCm,
+                    y: 0,
+                    w: topGeo.doorCm,
+                    h: topGeo.leafCm
+                };
+                furniture.forEach(f => {
+                    if (f.type === 'rug' || f.type === 'radiator') return;
+                    if (rectsOverlap(f, balconyArcBox)) {
+                        warnings.push(`A(z) ${f.name} beleütközik a befelé nyíló erkélyajtóba!`);
+                    }
+                });
+            }
+
+            // 3. Check Bottom Entry Door swing if inward
+            const botGeo = getBottomGeometry();
+            if (room.bottom.dir === 'in') {
+                const entryArcBox = {
+                    x: botGeo.leftCm + 3,
+                    y: room.h - botGeo.leafCm,
+                    w: botGeo.leafCm,
+                    h: botGeo.leafCm
+                };
+                furniture.forEach(f => {
+                    if (f.type === 'rug') return;
+                    if (rectsOverlap(f, entryArcBox)) {
+                        warnings.push(`A(z) ${f.name} akadályozza a bejárati ajtó nyitását!`);
+                    }
+                });
+            }
+
+            // 4. Calculate walkway width beside the bed
+            const bed = furniture.find(f => f.type === 'bed') || furniture[0];
+            let bedWalkway = bed ? (room.w - bed.w) : room.w;
+            if (bed) {
+                furniture.forEach(f => {
+                    if (f.id === bed.id || f.type === 'rug') return;
+                    const verticalOverlap = !(f.y + f.h <= bed.y || bed.y + bed.h <= f.y);
+                    if (verticalOverlap) {
+                        if (f.x + f.w <= bed.x) {
+                            bedWalkway = Math.min(bedWalkway, bed.x - (f.x + f.w));
+                        } else if (bed.x + bed.w <= f.x) {
+                            bedWalkway = Math.min(bedWalkway, f.x - (bed.x + bed.w));
+                        }
+                    }
+                });
+            }
+
+            const banner = document.getElementById('status-banner');
+            const icon = document.getElementById('status-icon');
+            const text = document.getElementById('status-text');
+            const badge = document.getElementById('walkway-badge');
+
+            badge.textContent = `Szabad sáv: ${Math.max(0, Math.round(bedWalkway))} cm`;
+
+            if (warnings.length > 0) {
+                banner.className = "px-4 py-2 text-xs font-medium flex items-center justify-between border-b transition-colors bg-rose-50 text-rose-900 border-rose-200";
+                icon.textContent = "⚠️";
+                text.textContent = warnings[0];
+            } else {
+                banner.className = "px-4 py-2 text-xs font-medium flex items-center justify-between border-b transition-colors bg-emerald-50 text-emerald-900 border-emerald-200";
+                icon.textContent = "✅";
+                text.textContent = `Ideális elrendezés! Minden ajtó szabadon nyílik, a közlekedő sáv ${Math.round(bedWalkway)} cm.`;
+            }
+
+            return { bedWalkway };
+        }
+
+        // --- ZOOM & CANVAS SIZING ---
+        function adjustZoom(delta) {
+            zoomMultiplier = Math.max(0.6, Math.min(1.8, round1(zoomMultiplier + delta)));
+            document.getElementById('zoom-label').textContent = `${Math.round(zoomMultiplier * 100)}%`;
+            resizeCanvas();
+        }
+
+        function resetZoom() {
+            zoomMultiplier = 1.0;
+            document.getElementById('zoom-label').textContent = '100%';
+            resizeCanvas();
+        }
+
+        function resizeCanvas() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            const availW = wrapper.clientWidth - 24;
+            const targetScaleW = (availW - padLeft - padRight) / room.w;
+            baseScale = Math.max(1.0, Math.min(2.0, targetScaleW));
+            scale = baseScale * zoomMultiplier;
+
+            canvas.width = Math.round(room.w * scale + padLeft + padRight);
+            canvas.height = Math.round(room.h * scale + padTop + padBottom);
+            draw();
+        }
+
+        function cmToPxX(cm) {
+            return padLeft + cm * scale;
+        }
+        function cmToPxY(cm) {
+            return padTop + cm * scale;
+        }
+
+        function drawDimensionLine(x1, y1, x2, y2, label, offsetPx = 0, color = '#334155', bgFill = '#ffffff') {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 1.2;
+
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const len = Math.hypot(dx, dy);
+            if (len < 16) {
+                ctx.restore();
+                return;
+            }
+
+            const nx = -dy / len;
+            const ny = dx / len;
+
+            const sx1 = x1 + nx * offsetPx;
+            const sy1 = y1 + ny * offsetPx;
+            const sx2 = x2 + nx * offsetPx;
+            const sy2 = y2 + ny * offsetPx;
+
+            if (Math.abs(offsetPx) > 4) {
+                ctx.beginPath();
+                ctx.setLineDash([2, 2]);
+                ctx.strokeStyle = '#94a3b8';
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(sx1, sy1);
+                ctx.moveTo(x2, y2);
+                ctx.lineTo(sx2, sy2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.strokeStyle = color;
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(sx1, sy1);
+            ctx.lineTo(sx2, sy2);
+            ctx.stroke();
+
+            const angle = Math.atan2(dy, dx);
+            const arrowSize = 5;
+            [
+                { x: sx1, y: sy1, dir: 1 },
+                { x: sx2, y: sy2, dir: -1 }
+            ].forEach(pt => {
+                ctx.beginPath();
+                ctx.moveTo(pt.x, pt.y);
+                ctx.lineTo(
+                    pt.x + pt.dir * arrowSize * Math.cos(angle - Math.PI / 6),
+                    pt.y + pt.dir * arrowSize * Math.sin(angle - Math.PI / 6)
+                );
+                ctx.lineTo(
+                    pt.x + pt.dir * arrowSize * Math.cos(angle + Math.PI / 6),
+                    pt.y + pt.dir * arrowSize * Math.sin(angle + Math.PI / 6)
+                );
+                ctx.closePath();
+                ctx.fill();
+            });
+
+            const mx = (sx1 + sx2) / 2;
+            const my = (sy1 + sy2) / 2;
+            ctx.font = '600 10.5px "JetBrains Mono", monospace';
+            const textMetrics = ctx.measureText(label);
+            const pw = textMetrics.width + 8;
+            const ph = 15;
+
+            ctx.translate(mx, my);
+            if (Math.abs(dy) > Math.abs(dx)) {
+                ctx.rotate(-Math.PI / 2);
+            }
+
+            ctx.fillStyle = bgFill;
+            ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, 0, 0);
+
+            ctx.restore();
+        }
+
+        function drawDoorArc(hingeX, hingeY, radiusPx, startAngle, endAngle, leafEndX, leafEndY, strokeColor, fillColor) {
+            ctx.save();
+            ctx.fillStyle = fillColor;
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 1.2;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(hingeX, hingeY);
+            ctx.arc(hingeX, hingeY, radiusPx, startAngle, endAngle, false);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Door leaf panel
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 3.5;
+            ctx.beginPath();
+            ctx.moveTo(hingeX, hingeY);
+            ctx.lineTo(leafEndX, leafEndY);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function draw() {
+            const showDims = document.getElementById('toggle-dims').checked;
+            const showItemDists = document.getElementById('toggle-item-dists').checked;
+            const showClearances = document.getElementById('toggle-clearances').checked;
+            const showGrid = document.getElementById('toggle-grid').checked;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const rx = cmToPxX(0);
+            const ry = cmToPxY(0);
+            const rw = room.w * scale;
+            const rh = room.h * scale;
+            const wt = room.wallThickness * (scale / 1.75);
+
+            // 1. Laminate Wood Floor background inside room
+            ctx.fillStyle = '#fdf8f0';
+            ctx.fillRect(rx, ry, rw, rh);
+
+            ctx.strokeStyle = '#f3e8d6';
+            ctx.lineWidth = 1;
+            for (let x = 20; x < room.w; x += 20) {
+                ctx.beginPath();
+                ctx.moveTo(cmToPxX(x), ry);
+                ctx.lineTo(cmToPxX(x), ry + rh);
+                ctx.stroke();
+            }
+
+            // 2. Grid lines (10 cm and 50 cm)
+            if (showGrid) {
+                for (let x = 10; x < room.w; x += 10) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = x % 50 === 0 ? 'rgba(148, 163, 184, 0.45)' : 'rgba(203, 213, 225, 0.35)';
+                    ctx.lineWidth = x % 50 === 0 ? 1 : 0.6;
+                    ctx.moveTo(cmToPxX(x), ry);
+                    ctx.lineTo(cmToPxX(x), ry + rh);
+                    ctx.stroke();
+                }
+                for (let y = 10; y < room.h; y += 10) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = y % 50 === 0 ? 'rgba(148, 163, 184, 0.45)' : 'rgba(203, 213, 225, 0.35)';
+                    ctx.lineWidth = y % 50 === 0 ? 1 : 0.6;
+                    ctx.moveTo(rx, cmToPxY(y));
+                    ctx.lineTo(rx + rw, cmToPxY(y));
+                    ctx.stroke();
+                }
+            }
+
+            // 3. Top Balcony Door Swing (Dynamic Hinge & Direction)
+            const topGeo = getTopGeometry();
+            const balLeftPx = cmToPxX(topGeo.leftCm);
+            const balRightPx = cmToPxX(topGeo.leftCm + topGeo.doorCm);
+            const balLeafPx = topGeo.leafCm * scale;
+
+            if (room.top.dir === 'in' && room.top.hinge === 'left') {
+                drawDoorArc(balLeftPx, ry, balLeafPx, 0, Math.PI / 2, balLeftPx, ry + balLeafPx, '#0284c7', 'rgba(56, 189, 248, 0.12)');
+            } else if (room.top.dir === 'in' && room.top.hinge === 'right') {
+                drawDoorArc(balRightPx, ry, balLeafPx, Math.PI / 2, Math.PI, balRightPx, ry + balLeafPx, '#0284c7', 'rgba(56, 189, 248, 0.12)');
+            } else if (room.top.dir === 'out' && room.top.hinge === 'left') {
+                drawDoorArc(balLeftPx, ry - wt, balLeafPx * 0.75, -Math.PI / 2, 0, balLeftPx, ry - wt - balLeafPx * 0.75, '#0284c7', 'rgba(56, 189, 248, 0.12)');
+            } else if (room.top.dir === 'out' && room.top.hinge === 'right') {
+                drawDoorArc(balRightPx, ry - wt, balLeafPx * 0.75, Math.PI, -Math.PI / 2, balRightPx, ry - wt - balLeafPx * 0.75, '#0284c7', 'rgba(56, 189, 248, 0.12)');
+            }
+
+            // 4. Bottom Entry Door Swing (Dynamic Hinge & Direction)
+            const botGeo = getBottomGeometry();
+            const entryFrameX = cmToPxX(botGeo.leftCm);
+            const entryFrameW = botGeo.frameCm * scale;
+            const entryLeafPx = botGeo.leafCm * scale;
+            const jambOffset = Math.max(0, (botGeo.frameCm - botGeo.leafCm) / 2) * scale;
+            const hingeLeftX = entryFrameX + jambOffset;
+            const hingeRightX = entryFrameX + entryFrameW - jambOffset;
+
+            if (room.bottom.dir === 'in' && room.bottom.hinge === 'left') {
+                drawDoorArc(hingeLeftX, ry + rh, entryLeafPx, -Math.PI / 2, 0, hingeLeftX, ry + rh - entryLeafPx, '#b45309', 'rgba(245, 158, 11, 0.10)');
+            } else if (room.bottom.dir === 'in' && room.bottom.hinge === 'right') {
+                drawDoorArc(hingeRightX, ry + rh, entryLeafPx, Math.PI, -Math.PI / 2, hingeRightX, ry + rh - entryLeafPx, '#b45309', 'rgba(245, 158, 11, 0.10)');
+            } else if (room.bottom.dir === 'out' && room.bottom.hinge === 'left') {
+                drawDoorArc(hingeLeftX, ry + rh + wt, entryLeafPx * 0.75, 0, Math.PI / 2, hingeLeftX, ry + rh + wt + entryLeafPx * 0.75, '#b45309', 'rgba(245, 158, 11, 0.10)');
+            } else if (room.bottom.dir === 'out' && room.bottom.hinge === 'right') {
+                drawDoorArc(hingeRightX, ry + rh + wt, entryLeafPx * 0.75, Math.PI / 2, Math.PI, hingeRightX, ry + rh + wt + entryLeafPx * 0.75, '#b45309', 'rgba(245, 158, 11, 0.10)');
+            }
+
+            // 5. Draw Room Outer Walls
+            ctx.fillStyle = '#334155';
+            // Left & Right walls
+            ctx.fillRect(rx - wt, ry - wt, wt, rh + wt * 2);
+            ctx.fillRect(rx + rw, ry - wt, wt, rh + wt * 2);
+
+            // Top wall left & right of balcony door
+            ctx.fillRect(rx - wt, ry - wt, topGeo.leftCm * scale + wt, wt);
+            ctx.fillRect(balRightPx, ry - wt, topGeo.rightCm * scale + wt, wt);
+            // Balcony threshold
+            ctx.fillStyle = '#bae6fd';
+            ctx.fillRect(balLeftPx, ry - wt, topGeo.doorCm * scale, wt);
+            ctx.strokeStyle = '#0284c7';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(balLeftPx, ry - wt, topGeo.doorCm * scale, wt);
+
+            // Bottom wall left & right of entry door
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(rx - wt, ry + rh, botGeo.leftCm * scale + wt, wt);
+            ctx.fillRect(entryFrameX + entryFrameW, ry + rh, botGeo.rightCm * scale + wt, wt);
+            // Entry door frame jambs
+            ctx.fillStyle = '#fde68a';
+            ctx.fillRect(entryFrameX, ry + rh, jambOffset, wt);
+            ctx.fillRect(entryFrameX + entryFrameW - jambOffset, ry + rh, jambOffset, wt);
+            ctx.strokeStyle = '#92400e';
+            ctx.strokeRect(entryFrameX, ry + rh, entryFrameW, wt);
+
+            // 6. Draw All Furniture Items
+            furniture.forEach(item => {
+                drawFurnitureItem(item, item.id === selectedId);
+            });
+
+            // 7. Draw Selected Item Distance to Walls
+            const selItem = furniture.find(f => f.id === selectedId);
+            if (showItemDists && selItem) {
+                const cx = cmToPxX(selItem.x + selItem.w / 2);
+                const cy = cmToPxY(selItem.y + selItem.h / 2);
+
+                if (selItem.x > 5) {
+                    drawDimensionLine(rx, cy, cmToPxX(selItem.x), cy, `${Math.round(selItem.x)} cm`, 0, '#6366f1', '#eef2ff');
+                }
+                const rightDist = room.w - (selItem.x + selItem.w);
+                if (rightDist > 5) {
+                    drawDimensionLine(cmToPxX(selItem.x + selItem.w), cy, rx + rw, cy, `${Math.round(rightDist)} cm`, 0, '#6366f1', '#eef2ff');
+                }
+                if (selItem.y > 5) {
+                    drawDimensionLine(cx, ry, cx, cmToPxY(selItem.y), `${Math.round(selItem.y)} cm`, 0, '#6366f1', '#eef2ff');
+                }
+                const botDist = room.h - (selItem.y + selItem.h);
+                if (botDist > 5) {
+                    drawDimensionLine(cx, cmToPxY(selItem.y + selItem.h), cx, ry + rh, `${Math.round(botDist)} cm`, 0, '#6366f1', '#eef2ff');
+                }
+            }
+
+            // 8. Draw Live Clearances (Walkways beside bed)
+            analyzeLayout();
+            if (showClearances) {
+                const bed = furniture.find(f => f.type === 'bed');
+                if (bed) {
+                    const midBedY = cmToPxY(bed.y + bed.h / 2);
+                    if (bed.x >= 25) {
+                        let leftObstacleX = 0;
+                        furniture.forEach(f => {
+                            if (f.id !== bed.id && f.type !== 'rug' && f.y <= bed.y + bed.h / 2 && f.y + f.h >= bed.y + bed.h / 2 && f.x + f.w <= bed.x) {
+                                leftObstacleX = Math.max(leftObstacleX, f.x + f.w);
+                            }
+                        });
+                        const clearCm = Math.round(bed.x - leftObstacleX);
+                        drawDimensionLine(
+                            cmToPxX(leftObstacleX),
+                            midBedY,
+                            cmToPxX(bed.x),
+                            midBedY,
+                            `Sáv: ${clearCm} cm`,
+                            0,
+                            clearCm >= 60 ? '#059669' : '#e11d48',
+                            '#ecfdf5'
+                        );
+                    }
+                    if (room.w - (bed.x + bed.w) >= 25) {
+                        let rightObstacleX = room.w;
+                        furniture.forEach(f => {
+                            if (f.id !== bed.id && f.type !== 'rug' && f.y <= bed.y + bed.h / 2 && f.y + f.h >= bed.y + bed.h / 2 && f.x >= bed.x + bed.w) {
+                                rightObstacleX = Math.min(rightObstacleX, f.x);
+                            }
+                        });
+                        const clearCm = Math.round(rightObstacleX - (bed.x + bed.w));
+                        drawDimensionLine(
+                            cmToPxX(bed.x + bed.w),
+                            midBedY,
+                            cmToPxX(rightObstacleX),
+                            midBedY,
+                            `Sáv: ${clearCm} cm`,
+                            0,
+                            clearCm >= 60 ? '#059669' : '#e11d48',
+                            '#ecfdf5'
+                        );
+                    }
+                }
+            }
+
+            // 9. Draw CAD Dimension Lines (Kótázás) around the perimeter
+            if (showDims) {
+                // Top wall segments
+                drawDimensionLine(rx, ry - wt, balLeftPx, ry - wt, topGeo.leftLabel, -20, '#475569');
+                drawDimensionLine(balLeftPx, ry - wt, balRightPx, ry - wt, topGeo.doorLabel, -20, '#0369a1');
+                drawDimensionLine(balRightPx, ry - wt, rx + rw, ry - wt, topGeo.rightLabel, -20, '#475569');
+
+                // Total Top Width
+                drawDimensionLine(rx, ry - wt, rx + rw, ry - wt, `${round1(room.w)} cm`, -44, '#0f172a');
+
+                // Left & Right Wall Total Height
+                drawDimensionLine(rx - wt, ry, rx - wt, ry + rh, `${round1(room.h)} cm`, -32, '#0f172a');
+                drawDimensionLine(rx + rw + wt, ry, rx + rw + wt, ry + rh, `${round1(room.h)} cm`, 32, '#0f172a');
+
+                // Bottom Wall user segments
+                const by = ry + rh + wt;
+                drawDimensionLine(rx, by, entryFrameX, by, botGeo.leftLabel, 22, '#334155');
+                drawDimensionLine(entryFrameX, by, entryFrameX + entryFrameW, by, botGeo.frameLabel, 22, '#92400e');
+                drawDimensionLine(entryFrameX + entryFrameW, by, rx + rw, by, botGeo.rightLabel, 22, '#334155');
+
+                // Total Bottom Width
+                drawDimensionLine(rx, by, rx + rw, by, `Szélesség: ${round1(room.w)} cm (${round1(room.bottom.left)} + ${round1(room.bottom.frame)} + ${round1(room.bottom.right)})`, 48, '#0f172a');
+            }
+        }
+
+        function drawFurnitureItem(item, isSelected) {
+            const x = cmToPxX(item.x);
+            const y = cmToPxY(item.y);
+            const w = item.w * scale;
+            const h = item.h * scale;
+
+            ctx.save();
+
+            // Shadow
+            ctx.shadowColor = isSelected ? 'rgba(217, 119, 6, 0.4)' : 'rgba(15, 23, 42, 0.10)';
+            ctx.shadowBlur = isSelected ? 12 : 5;
+            ctx.shadowOffsetY = item.type === 'rug' ? 0 : 2;
+
+            if (item.type === 'chair') {
+                // Draw swivel office chair (circular seat + curved backrest)
+                const cx = x + w / 2;
+                const cy = y + h / 2;
+                const r = Math.min(w, h) * 0.42;
+
+                ctx.fillStyle = item.color || '#bae6fd';
+                ctx.strokeStyle = isSelected ? '#d97706' : (item.borderColor || '#0284c7');
+                ctx.lineWidth = isSelected ? 2.5 : 1.5;
+
+                // Seat circle
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Backrest arc based on rotation
+                const rotRad = ((item.rotation || 0) * Math.PI) / 180;
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r * 0.88, rotRad + Math.PI * 0.65, rotRad + Math.PI * 1.35);
+                ctx.stroke();
+
+                if (isSelected) {
+                    ctx.strokeStyle = '#d97706';
+                    ctx.lineWidth = 1.2;
+                    ctx.setLineDash([3, 3]);
+                    ctx.strokeRect(x, y, w, h);
+                    ctx.setLineDash([]);
+                }
+            } else {
+                // Standard rectangular / rounded furniture body
+                ctx.fillStyle = item.color;
+                ctx.strokeStyle = isSelected ? '#d97706' : (item.borderColor || '#475569');
+                ctx.lineWidth = isSelected ? 2.5 : 1.5;
+
+                ctx.beginPath();
+                ctx.roundRect(x, y, w, h, item.type === 'radiator' ? 2 : 4);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            ctx.shadowColor = 'transparent';
+
+            // Detailed architectural CAD symbols inside furniture
+            if (item.type === 'bed') {
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#b45309';
+                ctx.lineWidth = 1.2;
+
+                if (item.h >= item.w) {
+                    const pW = (item.w * 0.38) * scale;
+                    const pH = Math.min(28 * scale, h * 0.2);
+                    const pY = y + 8 * scale;
+                    ctx.beginPath();
+                    ctx.roundRect(x + 8 * scale, pY, pW, pH, 5);
+                    ctx.roundRect(x + w - pW - 8 * scale, pY, pW, pH, 5);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
+                    ctx.fillRect(x + 4 * scale, y + pH + 14 * scale, w - 8 * scale, h - pH - 18 * scale);
+                } else {
+                    const pW = Math.min(28 * scale, w * 0.2);
+                    const pH = (item.h * 0.38) * scale;
+                    const pX = item.x < room.w / 2 ? x + 8 * scale : x + w - pW - 8 * scale;
+                    ctx.beginPath();
+                    ctx.roundRect(pX, y + 8 * scale, pW, pH, 5);
+                    ctx.roundRect(pX, y + h - pH - 8 * scale, pW, pH, 5);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+            } else if (item.type === 'desk') {
+                // Laptop icon on desk (chair is now a separate movable item!)
+                const lw = Math.min(w * 0.55, 32 * scale);
+                const lh = Math.min(h * 0.35, 24 * scale);
+                ctx.fillStyle = '#334155';
+                ctx.beginPath();
+                ctx.roundRect(x + (w - lw) / 2, y + (h - lh) / 2, lw, lh, 3);
+                ctx.fill();
+            } else if (item.type === 'wardrobe') {
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + w, y + h);
+                ctx.moveTo(x + w, y);
+                ctx.lineTo(x, y + h);
+                ctx.stroke();
+            } else if (item.type === 'radiator') {
+                ctx.strokeStyle = '#64748b';
+                ctx.lineWidth = 1;
+                const step = 4 * scale;
+                if (w >= h) {
+                    for (let fx = x + step; fx < x + w - 2; fx += step) {
+                        ctx.beginPath();
+                        ctx.moveTo(fx, y);
+                        ctx.lineTo(fx, y + h);
+                        ctx.stroke();
+                    }
+                } else {
+                    for (let fy = y + step; fy < y + h - 2; fy += step) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, fy);
+                        ctx.lineTo(x + w, fy);
+                        ctx.stroke();
+                    }
+                }
+            } else if (item.type === 'plant') {
+                ctx.fillStyle = '#16a34a';
+                ctx.beginPath();
+                ctx.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.32, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Furniture Label & Exact Size
+            const centerX = x + w / 2;
+            const centerY = y + h / 2;
+            const title = item.name.split(' (')[0];
+            const dimsText = `${round1(item.w)}×${round1(item.h)}`;
+
+            ctx.font = '700 10px "Inter", sans-serif';
+            const boxW = Math.max(ctx.measureText(title).width, ctx.measureText(dimsText).width) + 8;
+            const boxH = item.h < 22 ? 14 : 26;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+            ctx.beginPath();
+            ctx.roundRect(centerX - boxW / 2, centerY - boxH / 2, boxW, boxH, 3);
+            ctx.fill();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            if (item.h < 22) {
+                ctx.fillText(title, centerX, centerY);
+            } else {
+                ctx.fillText(title, centerX, centerY - 5);
+                ctx.font = '600 9.5px "JetBrains Mono", monospace';
+                ctx.fillStyle = '#475569';
+                ctx.fillText(dimsText, centerX, centerY + 6);
+            }
+
+            ctx.restore();
+        }
+
+        // --- POINTER INTERACTION (DRAG & SELECT) ---
+        function getPointerCm(evt) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+            const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+            const pxX = (clientX - rect.left) * (canvas.width / rect.width);
+            const pxY = (clientY - rect.top) * (canvas.height / rect.height);
+            return {
+                x: (pxX - padLeft) / scale,
+                y: (pxY - padTop) / scale
+            };
+        }
+
+        function onPointerDown(evt) {
+            const pt = getPointerCm(evt);
+            for (let i = furniture.length - 1; i >= 0; i--) {
+                const f = furniture[i];
+                if (pt.x >= f.x && pt.x <= f.x + f.w && pt.y >= f.y && pt.y <= f.y + f.h) {
+                    selectItem(f.id);
+                    isDragging = true;
+                    dragOffsetX = pt.x - f.x;
+                    dragOffsetY = pt.y - f.y;
+                    evt.preventDefault();
+                    return;
+                }
+            }
+        }
+
+        function onPointerMove(evt) {
+            if (!isDragging) return;
+            evt.preventDefault();
+            const pt = getPointerCm(evt);
+            const item = furniture.find(f => f.id === selectedId);
+            if (!item) return;
+
+            let rawX = pt.x - dragOffsetX;
+            let rawY = pt.y - dragOffsetY;
+
+            // Magnetic wall snap within 5 cm, otherwise 1 cm smooth positioning
+            if (Math.abs(rawX) < 5) rawX = 0;
+            else if (Math.abs(rawX + item.w - room.w) < 5) rawX = room.w - item.w;
+            else rawX = Math.round(rawX);
+
+            if (Math.abs(rawY) < 5) rawY = 0;
+            else if (Math.abs(rawY + item.h - room.h) < 5) rawY = room.h - item.h;
+            else rawY = Math.round(rawY);
+
+            item.x = rawX;
+            item.y = rawY;
+            clampItemToRoom(item);
+            updateInspectorPositions(item);
+            draw();
+        }
+
+        function onPointerUp() {
+            isDragging = false;
+        }
+
+        canvas.addEventListener('mousedown', onPointerDown);
+        window.addEventListener('mousemove', onPointerMove);
+        window.addEventListener('mouseup', onPointerUp);
+
+        canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+        window.addEventListener('touchmove', onPointerMove, { passive: false });
+        window.addEventListener('touchend', onPointerUp);
+
+        window.addEventListener('resize', resizeCanvas);
+
+        window.onload = function () {
+            syncRoomInputsUI();
+            applyPreset(1);
+            resizeCanvas();
+        };
+    </script>
+</body>
+</html>
