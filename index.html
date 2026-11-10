@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Méretarányos Szobatervező – 245 × 410 cm (140×200 ággyal)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body {
@@ -35,6 +36,47 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+
+        /* Clean A4 Print Styles */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 8mm;
+            }
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            header, main, #export-modal-controls, #export-modal-header {
+                display: none !important;
+            }
+            #export-modal {
+                position: static !important;
+                display: block !important;
+                background: transparent !important;
+                padding: 0 !important;
+                overflow: visible !important;
+            }
+            #export-modal-dialog {
+                max-width: 100% !important;
+                width: 100% !important;
+                max-height: none !important;
+                box-shadow: none !important;
+                border: none !important;
+                overflow: visible !important;
+            }
+            #export-sheet-wrapper {
+                padding: 0 !important;
+                background: transparent !important;
+                overflow: visible !important;
+            }
+            #export-sheet-canvas {
+                width: 100% !important;
+                height: auto !important;
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -51,25 +93,42 @@
                         Méretarányos Szobatervező CAD Pro
                         <span id="header-room-badge" class="text-xs font-mono bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-slate-700">245 × 410 cm</span>
                     </h1>
-                    <p class="text-xs text-slate-400">Teljesen szerkeszthető falak és ajtók • Külön mozgatható szék és íróasztal • Egyedi bútorok</p>
+                    <p class="text-xs text-slate-400">Teljesen szerkeszthető falak és ajtók • Külön mozgatható szék és íróasztal • PDF & PNG Export</p>
                 </div>
             </div>
 
-            <!-- Preset Layout Buttons -->
+            <!-- Preset Layout & Export Buttons -->
             <div class="flex flex-wrap items-center gap-1.5">
-                <span class="text-xs text-slate-400 mr-1 hidden md:inline">Elrendezések:</span>
-                <button onclick="applyPreset(1)" id="preset-btn-1" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-amber-500 text-slate-950 shadow-sm">
-                    ★ 1. Optimális (Ágy középen-jobbra)
+                <span class="text-xs text-slate-400 mr-1 hidden xl:inline">Elrendezések:</span>
+                <button onclick="applyPreset(1)" id="preset-btn-1" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-amber-500 text-slate-950 shadow-sm">
+                    ★ 1. Ajánlott terv (Jobb oldali ágy)
                 </button>
-                <button onclick="applyPreset(2)" id="preset-btn-2" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-slate-800 text-slate-200 hover:bg-slate-700">
-                    2. Ágy hátul-jobbra
+                <button onclick="applyPreset(2)" id="preset-btn-2" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-slate-800 text-slate-200 hover:bg-slate-700">
+                    2. Ágy hátul, gardrób elöl
                 </button>
-                <button onclick="applyPreset(3)" id="preset-btn-3" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-slate-800 text-slate-200 hover:bg-slate-700">
-                    3. Ágy bal falon
+                <button onclick="applyPreset(3)" id="preset-btn-3" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-slate-800 text-slate-200 hover:bg-slate-700">
+                    3. Bal oldali ágyas terv
                 </button>
-                <button onclick="resetRoomDefaults()" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-amber-400 hover:bg-slate-700 border border-slate-700 ml-1" title="Eredeti 245x410 cm szobaméretek visszaállítása">
+                <button onclick="resetRoomDefaults()" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-amber-400 hover:bg-slate-700 border border-slate-700" title="Eredeti 245x410 cm szobaméretek visszaállítása">
                     ↺ Alaphelyzet
                 </button>
+
+                <div class="h-5 w-px bg-slate-700 mx-1 hidden sm:block"></div>
+
+                <!-- Export / Print / Save Action Buttons -->
+                <button onclick="openExportModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-sm transition flex items-center gap-1.5">
+                    <span>📄 PDF / Nyomtatható terv</span>
+                </button>
+                <button onclick="downloadHighResPNG()" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-sky-600 hover:bg-sky-500 text-white shadow-sm transition flex items-center gap-1" title="Műszaki tervlap letöltése nagyfelbontású PNG képként">
+                    <span>🖼️ PNG Kép</span>
+                </button>
+                <button onclick="exportJSONProject()" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" title="Tervfájl mentése (.json)">
+                    💾 Mentés
+                </button>
+                <label class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer" title="Mentett tervfájl (.json) betöltése">
+                    📂 Betöltés
+                    <input type="file" accept=".json" onchange="importJSONProject(event)" class="hidden">
+                </label>
             </div>
         </div>
     </header>
@@ -383,6 +442,67 @@
 
         </div>
     </main>
+
+    <!-- PRINT / PDF EXPORT MODAL -->
+    <div id="export-modal" class="fixed inset-0 z-50 hidden bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+        <div id="export-modal-dialog" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-5xl w-full max-h-[95vh] flex flex-col overflow-hidden">
+            <!-- Modal Header -->
+            <div id="export-modal-header" class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-xl">📐</span>
+                    <div>
+                        <h3 class="font-bold text-sm sm:text-base">Nyomtatható Műszaki Tervlap & PDF Export</h3>
+                        <p class="text-[11px] text-slate-400">A4-es méretarányos alaprajz, falosztásokkal, ajtónyitási ívekkel és teljes bútorjegyzékkel</p>
+                    </div>
+                </div>
+                <button onclick="closeExportModal()" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+                    ✕ Bezárás
+                </button>
+            </div>
+
+            <!-- Modal Controls Toolbar -->
+            <div id="export-modal-controls" class="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-end justify-between gap-3 text-xs">
+                <div class="flex flex-wrap items-end gap-3 flex-1 min-w-[260px]">
+                    <div class="flex-1 min-w-[180px]">
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tervlap címe / fejléc</label>
+                        <input type="text" id="export-title-inp" value="MÉRETARÁNYOS SZOBATERV – BÚTOROZÁSI ALAPRAJZ" oninput="renderExportSheet()" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-semibold text-xs bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                    <div class="flex-1 min-w-[180px]">
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Megjegyzés / Projekt infó</label>
+                        <input type="text" id="export-notes-inp" value="140×200 cm ágy, külön íróasztal és forgószék, befelé nyíló erkélyajtó" oninput="renderExportSheet()" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                    <div class="flex items-center gap-3 pb-1.5">
+                        <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                            <input type="checkbox" id="export-chk-table" checked onchange="renderExportSheet()" class="rounded text-amber-600">
+                            <span>Bútorjegyzék táblázat</span>
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                            <input type="checkbox" id="export-chk-dists" checked onchange="renderExportSheet()" class="rounded text-amber-600">
+                            <span>Szabad sávok & kóták</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Primary Export Action Buttons -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="downloadDirectPDF()" id="btn-download-pdf" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5">
+                        <span>📥 PDF közvetlen letöltése (.pdf)</span>
+                    </button>
+                    <button onclick="downloadHighResPNG()" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5">
+                        <span>🖼️ Letöltés PNG képként</span>
+                    </button>
+                    <button onclick="triggerBrowserPrint()" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5">
+                        <span>🖨️ Nyomtatás / Rendszer PDF</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Sheet Area -->
+            <div id="export-sheet-wrapper" class="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-200/80 flex justify-center items-start">
+                <canvas id="export-sheet-canvas" class="bg-white shadow-xl rounded border border-slate-300 max-w-full h-auto"></canvas>
+            </div>
+        </div>
+    </div>
 
     <script>
         // --- EDITABLE ROOM & DOOR STATE (in centimeters) ---
@@ -1677,6 +1797,606 @@
 
         function onPointerUp() {
             isDragging = false;
+        }
+
+        // --- HIGH-RESOLUTION ARCHITECTURAL SHEET GENERATOR (A4 PRINT / PDF / PNG) ---
+        function openExportModal() {
+            const modal = document.getElementById('export-modal');
+            modal.classList.remove('hidden');
+            renderExportSheet();
+        }
+
+        function closeExportModal() {
+            const modal = document.getElementById('export-modal');
+            modal.classList.add('hidden');
+        }
+
+        function renderExportSheet() {
+            const sheetCanvas = document.getElementById('export-sheet-canvas');
+            const sCtx = sheetCanvas.getContext('2d');
+
+            // High-DPI A4 Portrait dimensions (1654 x 2339 px @ 200 DPI for crisp vector-like text and lines)
+            const W = 1654;
+            const H = 2339;
+            sheetCanvas.width = W;
+            sheetCanvas.height = H;
+
+            const includeTable = document.getElementById('export-chk-table') ? document.getElementById('export-chk-table').checked : true;
+            const includeDists = document.getElementById('export-chk-dists') ? document.getElementById('export-chk-dists').checked : true;
+            const planTitle = (document.getElementById('export-title-inp')?.value || 'MÉRETARÁNYOS SZOBATERV').trim();
+            const planNotes = (document.getElementById('export-notes-inp')?.value || '').trim();
+
+            // White Paper Background
+            sCtx.fillStyle = '#ffffff';
+            sCtx.fillRect(0, 0, W, H);
+
+            // Outer Architectural Border Frame
+            const margin = 48;
+            sCtx.strokeStyle = '#0f172a';
+            sCtx.lineWidth = 3;
+            sCtx.strokeRect(margin, margin, W - margin * 2, H - margin * 2);
+
+            sCtx.strokeStyle = '#94a3b8';
+            sCtx.lineWidth = 1;
+            sCtx.strokeRect(margin + 8, margin + 8, W - (margin + 8) * 2, H - (margin + 8) * 2);
+
+            // 1. HEADER / ARCHITECTURAL TITLE BLOCK
+            const headerH = 175;
+            const innerX = margin + 8;
+            const innerY = margin + 8;
+            const innerW = W - (margin + 8) * 2;
+
+            sCtx.fillStyle = '#f8fafc';
+            sCtx.fillRect(innerX, innerY, innerW, headerH);
+            sCtx.strokeStyle = '#0f172a';
+            sCtx.lineWidth = 2;
+            sCtx.beginPath();
+            sCtx.moveTo(innerX, innerY + headerH);
+            sCtx.lineTo(innerX + innerW, innerY + headerH);
+            sCtx.stroke();
+
+            // Title & Subtitle
+            sCtx.fillStyle = '#0f172a';
+            sCtx.font = '700 30px "Inter", sans-serif';
+            sCtx.textAlign = 'left';
+            sCtx.textBaseline = 'top';
+            sCtx.fillText(planTitle, innerX + 28, innerY + 24);
+
+            sCtx.fillStyle = '#475569';
+            sCtx.font = '500 19px "Inter", sans-serif';
+            sCtx.fillText(planNotes || `Szoba mérete: ${round1(room.w)} × ${round1(room.h)} cm`, innerX + 28, innerY + 68);
+
+            // Key Specs Pills in Header
+            const areaM2 = ((room.w * room.h) / 10000).toFixed(2);
+            const botStr = `Bejárati fal: ${round1(room.bottom.left)} + ${round1(room.bottom.frame)} (ajtó: ${round1(room.bottom.leaf)}) + ${round1(room.bottom.right)} cm`;
+            const topStr = `Erkélyfal: ${round1(room.top.left)} + ${round1(room.top.door)} (nyíló: ${round1(room.top.leaf)}) + ${round1(room.top.right)} cm`;
+
+            sCtx.fillStyle = '#1e293b';
+            sCtx.font = '600 17px "JetBrains Mono", monospace';
+            sCtx.fillText(`${botStr}   |   ${topStr}`, innerX + 28, innerY + 110);
+
+            // Right Side Metadata Box in Header
+            const metaW = 360;
+            const metaX = innerX + innerW - metaW;
+            sCtx.strokeStyle = '#cbd5e1';
+            sCtx.lineWidth = 1.5;
+            sCtx.beginPath();
+            sCtx.moveTo(metaX, innerY);
+            sCtx.lineTo(metaX, innerY + headerH);
+            sCtx.stroke();
+
+            const dateStr = new Date().toLocaleDateString('hu-HU', { year: 'numeric', month: '2-digit', day: '2-digit' });
+            sCtx.fillStyle = '#0f172a';
+            sCtx.font = '700 22px "JetBrains Mono", monospace';
+            sCtx.fillText(`MÉRET: ${round1(room.w)} × ${round1(room.h)} cm`, metaX + 24, innerY + 26);
+
+            sCtx.fillStyle = '#334155';
+            sCtx.font = '600 18px "JetBrains Mono", monospace';
+            sCtx.fillText(`ALAPTERÜLET: ${areaM2} m²`, metaX + 24, innerY + 64);
+            sCtx.fillText(`BÚTOROK SZÁMA: ${furniture.length} db`, metaX + 24, innerY + 98);
+            sCtx.fillStyle = '#64748b';
+            sCtx.font = '500 16px "Inter", sans-serif';
+            sCtx.fillText(`Dátum: ${dateStr} • M = 1:100 cm`, metaX + 24, innerY + 132);
+
+            // 2. FLOORPLAN DRAWING ZONE
+            const planZoneTop = innerY + headerH + 20;
+            const tableReserveH = includeTable ? 510 : 90;
+            const planZoneH = (H - margin - 8 - tableReserveH) - planZoneTop;
+            const planZoneW = innerW - 40;
+
+            // Compute optimal scale for the room inside planZone
+            const padPlanX = 220;
+            const padPlanY = 190;
+            const scaleX = (planZoneW - padPlanX * 2) / room.w;
+            const scaleY = (planZoneH - padPlanY * 2) / room.h;
+            const pScale = Math.min(scaleX, scaleY, 3.3);
+
+            const drawW = room.w * pScale;
+            const drawH = room.h * pScale;
+            const originX = innerX + (innerW - drawW) / 2;
+            const originY = planZoneTop + (planZoneH - drawH) / 2;
+            const pWt = room.wallThickness * (pScale / 1.75);
+
+            const toPxX = (cm) => originX + cm * pScale;
+            const toPxY = (cm) => originY + cm * pScale;
+
+            // Helper for dimension lines on the export sheet
+            function drawSheetDim(x1, y1, x2, y2, label, offsetPx = 0, color = '#1e293b', bgFill = '#ffffff') {
+                sCtx.save();
+                sCtx.strokeStyle = color;
+                sCtx.fillStyle = color;
+                sCtx.lineWidth = 2;
+
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const len = Math.hypot(dx, dy);
+                if (len < 24) {
+                    sCtx.restore();
+                    return;
+                }
+
+                const nx = -dy / len;
+                const ny = dx / len;
+                const sx1 = x1 + nx * offsetPx;
+                const sy1 = y1 + ny * offsetPx;
+                const sx2 = x2 + nx * offsetPx;
+                const sy2 = y2 + ny * offsetPx;
+
+                if (Math.abs(offsetPx) > 6) {
+                    sCtx.beginPath();
+                    sCtx.setLineDash([4, 4]);
+                    sCtx.strokeStyle = '#94a3b8';
+                    sCtx.lineWidth = 1.4;
+                    sCtx.moveTo(x1, y1);
+                    sCtx.lineTo(sx1, sy1);
+                    sCtx.moveTo(x2, y2);
+                    sCtx.lineTo(sx2, sy2);
+                    sCtx.stroke();
+                    sCtx.setLineDash([]);
+                    sCtx.strokeStyle = color;
+                    sCtx.lineWidth = 2;
+                }
+
+                sCtx.beginPath();
+                sCtx.moveTo(sx1, sy1);
+                sCtx.lineTo(sx2, sy2);
+                sCtx.stroke();
+
+                const angle = Math.atan2(dy, dx);
+                const arrowSize = 9;
+                [
+                    { x: sx1, y: sy1, dir: 1 },
+                    { x: sx2, y: sy2, dir: -1 }
+                ].forEach(pt => {
+                    sCtx.beginPath();
+                    sCtx.moveTo(pt.x, pt.y);
+                    sCtx.lineTo(
+                        pt.x + pt.dir * arrowSize * Math.cos(angle - Math.PI / 6),
+                        pt.y + pt.dir * arrowSize * Math.sin(angle - Math.PI / 6)
+                    );
+                    sCtx.lineTo(
+                        pt.x + pt.dir * arrowSize * Math.cos(angle + Math.PI / 6),
+                        pt.y + pt.dir * arrowSize * Math.sin(angle + Math.PI / 6)
+                    );
+                    sCtx.closePath();
+                    sCtx.fill();
+                });
+
+                const mx = (sx1 + sx2) / 2;
+                const my = (sy1 + sy2) / 2;
+                sCtx.font = '700 18px "JetBrains Mono", monospace';
+                const textMetrics = sCtx.measureText(label);
+                const pw = textMetrics.width + 14;
+                const ph = 26;
+
+                sCtx.translate(mx, my);
+                if (Math.abs(dy) > Math.abs(dx)) {
+                    sCtx.rotate(-Math.PI / 2);
+                }
+
+                sCtx.fillStyle = bgFill;
+                sCtx.fillRect(-pw / 2, -ph / 2, pw, ph);
+                sCtx.fillStyle = color;
+                sCtx.textAlign = 'center';
+                sCtx.textBaseline = 'middle';
+                sCtx.fillText(label, 0, 0);
+                sCtx.restore();
+            }
+
+            function drawSheetDoorArc(hingeX, hingeY, radiusPx, startAngle, endAngle, leafEndX, leafEndY, strokeColor, fillColor) {
+                sCtx.save();
+                sCtx.fillStyle = fillColor;
+                sCtx.strokeStyle = strokeColor;
+                sCtx.lineWidth = 2;
+                sCtx.setLineDash([7, 7]);
+                sCtx.beginPath();
+                sCtx.moveTo(hingeX, hingeY);
+                sCtx.arc(hingeX, hingeY, radiusPx, startAngle, endAngle, false);
+                sCtx.closePath();
+                sCtx.fill();
+                sCtx.stroke();
+                sCtx.setLineDash([]);
+
+                sCtx.strokeStyle = strokeColor;
+                sCtx.lineWidth = 5;
+                sCtx.beginPath();
+                sCtx.moveTo(hingeX, hingeY);
+                sCtx.lineTo(leafEndX, leafEndY);
+                sCtx.stroke();
+                sCtx.restore();
+            }
+
+            // Room Floor & Subtle 10/50cm Grid
+            sCtx.fillStyle = '#fdfaf5';
+            sCtx.fillRect(originX, originY, drawW, drawH);
+
+            for (let x = 10; x < room.w; x += 10) {
+                sCtx.beginPath();
+                sCtx.strokeStyle = x % 50 === 0 ? 'rgba(148, 163, 184, 0.5)' : 'rgba(203, 213, 225, 0.35)';
+                sCtx.lineWidth = x % 50 === 0 ? 1.5 : 0.8;
+                sCtx.moveTo(toPxX(x), originY);
+                sCtx.lineTo(toPxX(x), originY + drawH);
+                sCtx.stroke();
+            }
+            for (let y = 10; y < room.h; y += 10) {
+                sCtx.beginPath();
+                sCtx.strokeStyle = y % 50 === 0 ? 'rgba(148, 163, 184, 0.5)' : 'rgba(203, 213, 225, 0.35)';
+                sCtx.lineWidth = y % 50 === 0 ? 1.5 : 0.8;
+                sCtx.moveTo(originX, toPxY(y));
+                sCtx.lineTo(originX + drawW, toPxY(y));
+                sCtx.stroke();
+            }
+
+            // Door Swings on Export Sheet
+            const topGeo = getTopGeometry();
+            const balLeftPx = toPxX(topGeo.leftCm);
+            const balRightPx = toPxX(topGeo.leftCm + topGeo.doorCm);
+            const balLeafPx = topGeo.leafCm * pScale;
+
+            if (room.top.dir === 'in' && room.top.hinge === 'left') {
+                drawSheetDoorArc(balLeftPx, originY, balLeafPx, 0, Math.PI / 2, balLeftPx, originY + balLeafPx, '#0284c7', 'rgba(56, 189, 248, 0.14)');
+            } else if (room.top.dir === 'in' && room.top.hinge === 'right') {
+                drawSheetDoorArc(balRightPx, originY, balLeafPx, Math.PI / 2, Math.PI, balRightPx, originY + balLeafPx, '#0284c7', 'rgba(56, 189, 248, 0.14)');
+            } else if (room.top.dir === 'out' && room.top.hinge === 'left') {
+                drawSheetDoorArc(balLeftPx, originY - pWt, balLeafPx * 0.75, -Math.PI / 2, 0, balLeftPx, originY - pWt - balLeafPx * 0.75, '#0284c7', 'rgba(56, 189, 248, 0.14)');
+            } else if (room.top.dir === 'out' && room.top.hinge === 'right') {
+                drawSheetDoorArc(balRightPx, originY - pWt, balLeafPx * 0.75, Math.PI, -Math.PI / 2, balRightPx, originY - pWt - balLeafPx * 0.75, '#0284c7', 'rgba(56, 189, 248, 0.14)');
+            }
+
+            const botGeo = getBottomGeometry();
+            const entryFrameX = toPxX(botGeo.leftCm);
+            const entryFrameW = botGeo.frameCm * pScale;
+            const entryLeafPx = botGeo.leafCm * pScale;
+            const jambOffset = Math.max(0, (botGeo.frameCm - botGeo.leafCm) / 2) * pScale;
+            const hingeLeftX = entryFrameX + jambOffset;
+            const hingeRightX = entryFrameX + entryFrameW - jambOffset;
+
+            if (room.bottom.dir === 'in' && room.bottom.hinge === 'left') {
+                drawSheetDoorArc(hingeLeftX, originY + drawH, entryLeafPx, -Math.PI / 2, 0, hingeLeftX, originY + drawH - entryLeafPx, '#b45309', 'rgba(245, 158, 11, 0.12)');
+            } else if (room.bottom.dir === 'in' && room.bottom.hinge === 'right') {
+                drawSheetDoorArc(hingeRightX, originY + drawH, entryLeafPx, Math.PI, -Math.PI / 2, hingeRightX, originY + drawH - entryLeafPx, '#b45309', 'rgba(245, 158, 11, 0.12)');
+            } else if (room.bottom.dir === 'out' && room.bottom.hinge === 'left') {
+                drawSheetDoorArc(hingeLeftX, originY + drawH + pWt, entryLeafPx * 0.75, 0, Math.PI / 2, hingeLeftX, originY + drawH + pWt + entryLeafPx * 0.75, '#b45309', 'rgba(245, 158, 11, 0.12)');
+            } else if (room.bottom.dir === 'out' && room.bottom.hinge === 'right') {
+                drawSheetDoorArc(hingeRightX, originY + drawH + pWt, entryLeafPx * 0.75, Math.PI / 2, Math.PI, hingeRightX, originY + drawH + pWt + entryLeafPx * 0.75, '#b45309', 'rgba(245, 158, 11, 0.12)');
+            }
+
+            // Room Outer Walls on Sheet
+            sCtx.fillStyle = '#1e293b';
+            sCtx.fillRect(originX - pWt, originY - pWt, pWt, drawH + pWt * 2);
+            sCtx.fillRect(originX + drawW, originY - pWt, pWt, drawH + pWt * 2);
+            sCtx.fillRect(originX - pWt, originY - pWt, topGeo.leftCm * pScale + pWt, pWt);
+            sCtx.fillRect(balRightPx, originY - pWt, topGeo.rightCm * pScale + pWt, pWt);
+
+            sCtx.fillStyle = '#bae6fd';
+            sCtx.fillRect(balLeftPx, originY - pWt, topGeo.doorCm * pScale, pWt);
+            sCtx.strokeStyle = '#0284c7';
+            sCtx.lineWidth = 2;
+            sCtx.strokeRect(balLeftPx, originY - pWt, topGeo.doorCm * pScale, pWt);
+
+            sCtx.fillStyle = '#1e293b';
+            sCtx.fillRect(originX - pWt, originY + drawH, botGeo.leftCm * pScale + pWt, pWt);
+            sCtx.fillRect(entryFrameX + entryFrameW, originY + drawH, botGeo.rightCm * pScale + pWt, pWt);
+
+            sCtx.fillStyle = '#fde68a';
+            sCtx.fillRect(entryFrameX, originY + drawH, jambOffset, pWt);
+            sCtx.fillRect(entryFrameX + entryFrameW - jambOffset, originY + drawH, jambOffset, pWt);
+            sCtx.strokeStyle = '#92400e';
+            sCtx.strokeRect(entryFrameX, originY + drawH, entryFrameW, pWt);
+
+            // Draw Furniture Items on Sheet
+            furniture.forEach((item, idx) => {
+                const fx = toPxX(item.x);
+                const fy = toPxY(item.y);
+                const fw = item.w * pScale;
+                const fh = item.h * pScale;
+
+                sCtx.save();
+                if (item.type === 'chair') {
+                    const cx = fx + fw / 2;
+                    const cy = fy + fh / 2;
+                    const r = Math.min(fw, fh) * 0.42;
+                    sCtx.fillStyle = item.color || '#bae6fd';
+                    sCtx.strokeStyle = item.borderColor || '#0284c7';
+                    sCtx.lineWidth = 2.5;
+                    sCtx.beginPath();
+                    sCtx.arc(cx, cy, r, 0, Math.PI * 2);
+                    sCtx.fill();
+                    sCtx.stroke();
+
+                    const rotRad = ((item.rotation || 0) * Math.PI) / 180;
+                    sCtx.lineWidth = 6;
+                    sCtx.beginPath();
+                    sCtx.arc(cx, cy, r * 0.88, rotRad + Math.PI * 0.65, rotRad + Math.PI * 1.35);
+                    sCtx.stroke();
+                } else {
+                    sCtx.fillStyle = item.color;
+                    sCtx.strokeStyle = item.borderColor || '#334155';
+                    sCtx.lineWidth = 2.5;
+                    sCtx.beginPath();
+                    sCtx.roundRect(fx, fy, fw, fh, item.type === 'radiator' ? 3 : 6);
+                    sCtx.fill();
+                    sCtx.stroke();
+                }
+
+                // Internal details for bed & wardrobe
+                if (item.type === 'bed') {
+                    sCtx.fillStyle = '#ffffff';
+                    sCtx.strokeStyle = '#b45309';
+                    sCtx.lineWidth = 2;
+                    if (item.h >= item.w) {
+                        const pW = (item.w * 0.38) * pScale;
+                        const pH = Math.min(28 * pScale, fh * 0.2);
+                        const pY = fy + 8 * pScale;
+                        sCtx.beginPath();
+                        sCtx.roundRect(fx + 8 * pScale, pY, pW, pH, 6);
+                        sCtx.roundRect(fx + fw - pW - 8 * pScale, pY, pW, pH, 6);
+                        sCtx.fill();
+                        sCtx.stroke();
+                    }
+                } else if (item.type === 'wardrobe') {
+                    sCtx.strokeStyle = '#94a3b8';
+                    sCtx.lineWidth = 1.5;
+                    sCtx.beginPath();
+                    sCtx.moveTo(fx, fy);
+                    sCtx.lineTo(fx + fw, fy + fh);
+                    sCtx.moveTo(fx + fw, fy);
+                    sCtx.lineTo(fx, fy + fh);
+                    sCtx.stroke();
+                }
+
+                // Item Label & Index Badge
+                const centerX = fx + fw / 2;
+                const centerY = fy + fh / 2;
+                const shortTitle = `#${idx + 1} ${item.name.split(' (')[0]}`;
+                const dimsText = `${round1(item.w)} × ${round1(item.h)} cm`;
+
+                sCtx.font = '700 16px "Inter", sans-serif';
+                const boxW = Math.max(sCtx.measureText(shortTitle).width, sCtx.measureText(dimsText).width) + 16;
+                const boxH = item.h < 22 ? 26 : 44;
+
+                sCtx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+                sCtx.beginPath();
+                sCtx.roundRect(centerX - boxW / 2, centerY - boxH / 2, boxW, boxH, 5);
+                sCtx.fill();
+
+                sCtx.fillStyle = '#0f172a';
+                sCtx.textAlign = 'center';
+                sCtx.textBaseline = 'middle';
+                if (item.h < 22) {
+                    sCtx.fillText(shortTitle, centerX, centerY);
+                } else {
+                    sCtx.fillText(shortTitle, centerX, centerY - 9);
+                    sCtx.font = '600 14px "JetBrains Mono", monospace';
+                    sCtx.fillStyle = '#475569';
+                    sCtx.fillText(dimsText, centerX, centerY + 11);
+                }
+                sCtx.restore();
+            });
+
+            // Optional Walkway Clearances on Sheet
+            if (includeDists) {
+                const bed = furniture.find(f => f.type === 'bed');
+                if (bed) {
+                    const midBedY = toPxY(bed.y + bed.h / 2);
+                    if (bed.x >= 25) {
+                        let leftObs = 0;
+                        furniture.forEach(f => {
+                            if (f.id !== bed.id && f.type !== 'rug' && f.y <= bed.y + bed.h / 2 && f.y + f.h >= bed.y + bed.h / 2 && f.x + f.w <= bed.x) {
+                                leftObs = Math.max(leftObs, f.x + f.w);
+                            }
+                        });
+                        const clearCm = Math.round(bed.x - leftObs);
+                        drawSheetDim(toPxX(leftObs), midBedY, toPxX(bed.x), midBedY, `Szabad sáv: ${clearCm} cm`, 0, '#047857', '#ecfdf5');
+                    }
+                    if (room.w - (bed.x + bed.w) >= 25) {
+                        let rightObs = room.w;
+                        furniture.forEach(f => {
+                            if (f.id !== bed.id && f.type !== 'rug' && f.y <= bed.y + bed.h / 2 && f.y + f.h >= bed.y + bed.h / 2 && f.x >= bed.x + bed.w) {
+                                rightObs = Math.min(rightObs, f.x);
+                            }
+                        });
+                        const clearCm = Math.round(rightObs - (bed.x + bed.w));
+                        drawSheetDim(toPxX(bed.x + bed.w), midBedY, toPxX(rightObs), midBedY, `Szabad sáv: ${clearCm} cm`, 0, '#047857', '#ecfdf5');
+                    }
+                }
+            }
+
+            // Outer Perimeter CAD Dimensions on Sheet
+            drawSheetDim(originX, originY - pWt, balLeftPx, originY - pWt, topGeo.leftLabel, -36, '#475569');
+            drawSheetDim(balLeftPx, originY - pWt, balRightPx, originY - pWt, topGeo.doorLabel, -36, '#0369a1');
+            drawSheetDim(balRightPx, originY - pWt, originX + drawW, originY - pWt, topGeo.rightLabel, -36, '#475569');
+            drawSheetDim(originX, originY - pWt, originX + drawW, originY - pWt, `Felső fal összesen: ${round1(room.w)} cm`, -80, '#0f172a');
+
+            drawSheetDim(originX - pWt, originY, originX - pWt, originY + drawH, `Bal fal: ${round1(room.h)} cm`, -58, '#0f172a');
+            drawSheetDim(originX + drawW + pWt, originY, originX + drawW + pWt, originY + drawH, `Jobb fal: ${round1(room.h)} cm`, 58, '#0f172a');
+
+            const by = originY + drawH + pWt;
+            drawSheetDim(originX, by, entryFrameX, by, botGeo.leftLabel, 40, '#334155');
+            drawSheetDim(entryFrameX, by, entryFrameX + entryFrameW, by, botGeo.frameLabel, 40, '#92400e');
+            drawSheetDim(entryFrameX + entryFrameW, by, originX + drawW, by, botGeo.rightLabel, 40, '#334155');
+            drawSheetDim(originX, by, originX + drawW, by, `Bejárati fal: ${round1(room.w)} cm (${round1(room.bottom.left)} + ${round1(room.bottom.frame)} + ${round1(room.bottom.right)})`, 86, '#0f172a');
+
+            // 3. FURNITURE SPECIFICATION TABLE (BÚTORJEGYZÉK) AT BOTTOM OF A4 SHEET
+            if (includeTable) {
+                const tableTop = H - margin - 8 - tableReserveH + 10;
+                const tableX = innerX + 28;
+                const tableW = innerW - 56;
+
+                sCtx.fillStyle = '#0f172a';
+                sCtx.font = '700 21px "Inter", sans-serif';
+                sCtx.textAlign = 'left';
+                sCtx.fillText('BÚTORJEGYZÉK ÉS POZÍCIÓ TÁBLÁZAT (CENTIMÉTERBEN)', tableX, tableTop);
+
+                const rowH = 38;
+                const headY = tableTop + 32;
+
+                // Table Header
+                sCtx.fillStyle = '#e2e8f0';
+                sCtx.fillRect(tableX, headY, tableW, rowH);
+                sCtx.strokeStyle = '#94a3b8';
+                sCtx.lineWidth = 1.5;
+                sCtx.strokeRect(tableX, headY, tableW, rowH);
+
+                const cols = [
+                    { label: '#', x: tableX + 14 },
+                    { label: 'Bútor / Elem megnevezése', x: tableX + 75 },
+                    { label: 'Méret (Szél. × Hossz.)', x: tableX + 540 },
+                    { label: 'Bal faltól (X)', x: tableX + 860 },
+                    { label: 'Felső faltól (Y)', x: tableX + 1090 },
+                    { label: 'Jobb / Alsó faltól', x: tableX + 1310 }
+                ];
+
+                sCtx.fillStyle = '#0f172a';
+                sCtx.font = '700 16px "Inter", sans-serif';
+                sCtx.textBaseline = 'middle';
+                cols.forEach(c => sCtx.fillText(c.label, c.x, headY + rowH / 2));
+
+                const maxRows = Math.min(furniture.length, 10);
+                for (let i = 0; i < maxRows; i++) {
+                    const f = furniture[i];
+                    const ry = headY + rowH * (i + 1);
+                    sCtx.fillStyle = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+                    sCtx.fillRect(tableX, ry, tableW, rowH);
+                    sCtx.strokeStyle = '#cbd5e1';
+                    sCtx.lineWidth = 1;
+                    sCtx.strokeRect(tableX, ry, tableW, rowH);
+
+                    sCtx.fillStyle = '#0f172a';
+                    sCtx.font = '600 16px "JetBrains Mono", monospace';
+                    sCtx.fillText(`#${i + 1}`, cols[0].x, ry + rowH / 2);
+
+                    // Color swatch + Name
+                    sCtx.fillStyle = f.color || '#cbd5e1';
+                    sCtx.fillRect(cols[1].x, ry + 9, 20, 20);
+                    sCtx.strokeStyle = f.borderColor || '#475569';
+                    sCtx.strokeRect(cols[1].x, ry + 9, 20, 20);
+
+                    sCtx.fillStyle = '#0f172a';
+                    sCtx.font = '600 16px "Inter", sans-serif';
+                    sCtx.fillText(f.name, cols[1].x + 30, ry + rowH / 2);
+
+                    sCtx.font = '600 16px "JetBrains Mono", monospace';
+                    sCtx.fillText(`${round1(f.w)} × ${round1(f.h)} cm`, cols[2].x, ry + rowH / 2);
+                    sCtx.fillText(`${Math.round(f.x)} cm`, cols[3].x, ry + rowH / 2);
+                    sCtx.fillText(`${Math.round(f.y)} cm`, cols[4].x, ry + rowH / 2);
+
+                    const rDist = Math.round(room.w - (f.x + f.w));
+                    const bDist = Math.round(room.h - (f.y + f.h));
+                    sCtx.fillStyle = '#475569';
+                    sCtx.fillText(`${rDist} cm / ${bDist} cm`, cols[5].x, ry + rowH / 2);
+                }
+            }
+        }
+
+        function downloadDirectPDF() {
+            renderExportSheet();
+            const sheetCanvas = document.getElementById('export-sheet-canvas');
+            const btn = document.getElementById('btn-download-pdf');
+            const origText = btn.innerHTML;
+            btn.innerHTML = '<span>⏳ PDF generálása...</span>';
+
+            setTimeout(() => {
+                try {
+                    if (window.jspdf && window.jspdf.jsPDF) {
+                        const { jsPDF } = window.jspdf;
+                        const pdf = new jsPDF({
+                            orientation: 'portrait',
+                            unit: 'mm',
+                            format: 'a4',
+                            compress: true
+                        });
+                        const imgData = sheetCanvas.toDataURL('image/jpeg', 0.95);
+                        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+                        pdf.save(`szobaterv_${round1(room.w)}x${round1(room.h)}cm.pdf`);
+                    } else {
+                        triggerBrowserPrint();
+                    }
+                } catch (e) {
+                    console.error('PDF export error:', e);
+                    triggerBrowserPrint();
+                } finally {
+                    btn.innerHTML = origText;
+                }
+            }, 60);
+        }
+
+        function downloadHighResPNG() {
+            renderExportSheet();
+            const sheetCanvas = document.getElementById('export-sheet-canvas');
+            const link = document.createElement('a');
+            link.download = `szobaterv_${round1(room.w)}x${round1(room.h)}cm.png`;
+            link.href = sheetCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function triggerBrowserPrint() {
+            renderExportSheet();
+            const modal = document.getElementById('export-modal');
+            const wasHidden = modal.classList.contains('hidden');
+            if (wasHidden) modal.classList.remove('hidden');
+            setTimeout(() => {
+                window.print();
+            }, 100);
+        }
+
+        // --- JSON PROJECT SAVE & LOAD ---
+        function exportJSONProject() {
+            const payload = {
+                version: 2,
+                timestamp: new Date().toISOString(),
+                room: room,
+                furniture: furniture
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `szobaterv_${round1(room.w)}x${round1(room.h)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importJSONProject(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.room && Array.isArray(data.furniture)) {
+                        room = data.room;
+                        furniture = data.furniture;
+                        syncRoomInputsUI();
+                        if (furniture.length > 0) selectItem(furniture[0].id);
+                        resizeCanvas();
+                    }
+                } catch (err) {
+                    console.error('JSON betöltési hiba:', err);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
         }
 
         canvas.addEventListener('mousedown', onPointerDown);
